@@ -1,3 +1,4 @@
+#include "WString.h"
 #include "Arduino.h"
 #include "HardwareSerial.h"
 #include "DisplayManager.h"
@@ -57,7 +58,7 @@ float currentWeight = 0.0;
 bool limitSwitchState = false;
 int currentM = 0;
 float currentN = 1.25;
-char currentScreen = 'W';
+char currentScreen = 'e';
 unsigned long lastUpdateTime = 0;
 const long refreshInterval = 500;
 
@@ -67,8 +68,8 @@ void initializeDisplay() {
   mylcd.Set_Rotation(3);
   mylcd.Fill_Screen(BLACK);
   W();
-  delay(2000);
-  currentScreen = 'H';
+  // delay(2000);
+  currentScreen = 'e';
   mylcd.Fill_Screen(BLACK);
   displayCurrentScreen();
 }
@@ -278,6 +279,22 @@ void editN() {
   mylcd.Set_Text_colour(WHITE);
   mylcd.Set_Text_Size(4);
   mylcd.Print_String("Edit N Value", 90, 50);
+
+  // 260
+  mylcd.Set_Text_Size(8);
+  mylcd.Print_String( String(currentN), 175, 180);
+  mylcd.Set_Text_Size(6);
+  
+  mylcd.Print_String( "+", 175, 125);
+  mylcd.Print_String( "-", 175, 250);
+
+  mylcd.Print_String( "+", 270, 125);
+  mylcd.Print_String( "-", 270, 250);
+  mylcd.Print_String( "+", 320, 125);
+  mylcd.Print_String( "-", 320, 250);
+
+  
+
 }
 
 void select_M() {
