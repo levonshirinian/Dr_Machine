@@ -11,7 +11,7 @@ bool isRecording = false;
 
 void setup() {
   initializeSerial();
-  // initializeRTC();
+  initializeRTC();
   // initializeSensors();
   initializeDisplay();
   // initializeLEDs();
@@ -39,6 +39,4 @@ void loop() {
   //   session.setEnvironment(data.temperature, data.humidity, data.filamentDiameter);
   //   updateDisplay(data.temperature, data.humidity, data.weight, data.limitSwitch);
   // }
-
-  delay(1000);
 }

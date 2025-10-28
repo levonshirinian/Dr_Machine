@@ -1,3 +1,4 @@
+#include "Arduino.h"
 #include "HardwareSerial.h"
 #include "DisplayManager.h"
 #include <TouchScreen.h>
@@ -39,6 +40,7 @@ void M();
 void H();
 void editN();
 void select_M();
+void handle_Select_Material(int x, int y);
 void drawGradient(uint16_t topColor, uint16_t bottomColor);
 void menu(char m);
 void drawHeader(const char* title, bool showData);
@@ -86,8 +88,7 @@ void updateDisplay(float temp, float hum, float weight, bool limitState) {
 
 // handleTouch
 void handleTouch() {
-  Serial.println("handleTouch is active");
-  // refresh only when the screen changed 
+  // refresh only when the screen changed
   char oldScreen = currentScreen;
 
   TSPoint p = ts.getPoint();
@@ -98,23 +99,34 @@ void handleTouch() {
     p.x = mylcd.Get_Display_Width() - map(p.x, TS_MINX, TS_MAXX, 0, mylcd.Get_Display_Width());
     p.y = map(p.y, TS_MINY, TS_MAXY, 0, mylcd.Get_Display_Height());
 
-    if (is_pressed(0, 0, 70, 80, p.x, p.y)) {
+    if (is_pressed(0, 0, 105, 40, p.x, p.y)) {
       currentScreen = 'T';
       mylcd.Fill_Screen(BLACK);
-    } else if (is_pressed(0, 80, 70, 160, p.x, p.y)) {
+    } else if (is_pressed(106, 0, 212, 40, p.x, p.y)) {
       currentScreen = 'C';
       mylcd.Fill_Screen(BLACK);
-    } else if (is_pressed(0, 160, 70, 240, p.x, p.y)) {
+    } else if (is_pressed(213, 0, 318, 40, p.x, p.y)) {
       currentScreen = 'M';
       mylcd.Fill_Screen(BLACK);
-    } else if (is_pressed(0, 240, 70, 320, p.x, p.y)) {
+    } else if (is_pressed(370, 0, 480, 40, p.x, p.y)) {
       currentScreen = 'H';
       mylcd.Fill_Screen(BLACK);
+    } else if (currentScreen == 'T' && is_pressed(90, 60, 130, 155, p.x, p.y)) {
+      currentScreen = 's';
+    } else if (currentScreen == 'T' && is_pressed(150, 60, 200, 155, p.x, p.y)) {
+      currentScreen = 'e';
+    } else if (currentScreen == 's') {
+      handle_Select_Material(p.x, p.y);
     }
+
+
+
     Serial.print("x: ");
     Serial.print(p.x);
     Serial.print(" y: ");
     Serial.println(p.y);
+
+
 
     if (oldScreen != currentScreen)
       displayCurrentScreen();
@@ -278,6 +290,33 @@ void select_M() {
   mylcd.Set_Text_Size(3);
   for (int i = 0; i < 7; i++) {
     mylcd.Print_String(materials[i], 100, 100 + i * 30);
+  }
+}
+
+void handle_Select_Material(int x, int y) {
+
+  // x1 = 150 ,y1 = 65 , x2 = 460 , y2 = 175
+         if (is_pressed(150, 65, 180, 175, x, y)) {
+    currentM = 0;
+    currentScreen = 'T';
+  } else if (is_pressed(195, 65, 230, 175, x, y)) {
+    currentM = 1;
+    currentScreen = 'T';
+  } else if (is_pressed(240, 65, 275, 175, x, y)) {
+    currentM = 2;
+    currentScreen = 'T';
+  } else if (is_pressed(300, 65, 330, 175, x, y)) {
+    currentM = 3;
+    currentScreen = 'T';
+  } else if (is_pressed(345, 65, 375, 175, x, y)) {
+    currentM = 4;
+    currentScreen = 'T';
+  } else if (is_pressed(405, 65, 425, 175, x, y)) {
+    currentM = 5;
+    currentScreen = 'T';
+  } else if (is_pressed(440, 65, 465, 175, x, y)) {
+    currentM = 6;
+    currentScreen = 'T';
   }
 }
 
