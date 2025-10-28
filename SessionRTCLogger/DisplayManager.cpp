@@ -86,6 +86,7 @@ void updateDisplay(float temp, float hum, float weight, bool limitState) {
 
 // handleTouch
 void handleTouch() {
+  Serial.println("handleTouch is active");
   // refresh only when the screen changed 
   char oldScreen = currentScreen;
 
