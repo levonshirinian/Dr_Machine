@@ -42,7 +42,9 @@ void H();
 void editN();
 void select_M();
 void handle_Select_Material(int x, int y);
+void handle_Select_N(int x, int y);
 void drawGradient(uint16_t topColor, uint16_t bottomColor);
+void handle_SaveN(int x, int y);
 void menu(char m);
 void drawHeader(const char* title, bool showData);
 void drawWeight(int x, int y, const char* unit, bool largeFont);
@@ -57,10 +59,12 @@ float currentHum = 70.0;
 float currentWeight = 0.0;
 bool limitSwitchState = false;
 int currentM = 0;
-float currentN = 1.25;
+float currentN = 9.25;
+float newN = 9.25;
 char currentScreen = 'e';
 unsigned long lastUpdateTime = 0;
 const long refreshInterval = 500;
+
 
 // initializeDisplay
 void initializeDisplay() {
@@ -118,16 +122,14 @@ void handleTouch() {
       currentScreen = 'e';
     } else if (currentScreen == 's') {
       handle_Select_Material(p.x, p.y);
+    } else if (currentScreen == 'e') {
+      handle_Select_N(p.x, p.y);
     }
-
-
 
     Serial.print("x: ");
     Serial.print(p.x);
     Serial.print(" y: ");
     Serial.println(p.y);
-
-
 
     if (oldScreen != currentScreen)
       displayCurrentScreen();
@@ -225,6 +227,7 @@ void W() {
 }
 
 void T() {
+  newN = currentN;
   drawGradient(BLUE, BLACK);
   menu('T');
   drawHeader("TENSILE TEST", true);
@@ -280,21 +283,65 @@ void editN() {
   mylcd.Set_Text_Size(4);
   mylcd.Print_String("Edit N Value", 90, 50);
 
+  // mylcd.Print_String("Save", 370, 200);
+  mylcd.Print_String("Save", 390, 290);
+
   // 260
   mylcd.Set_Text_Size(8);
-  mylcd.Print_String( String(currentN), 175, 180);
+  mylcd.Print_String(String(newN), 175, 180);
   mylcd.Set_Text_Size(6);
-  
-  mylcd.Print_String( "+", 175, 125);
-  mylcd.Print_String( "-", 175, 250);
 
-  mylcd.Print_String( "+", 270, 125);
-  mylcd.Print_String( "-", 270, 250);
-  mylcd.Print_String( "+", 320, 125);
-  mylcd.Print_String( "-", 320, 250);
+  mylcd.Print_String("+", 175, 125);
+  mylcd.Print_String("-", 175, 250);
 
-  
+  mylcd.Print_String("+", 275, 125);
+  mylcd.Print_String("-", 275, 250);
 
+  mylcd.Print_String("+", 325, 125);
+  mylcd.Print_String("-", 325, 250);
+}
+
+void handle_Select_N(int x, int y) {
+  if (!(millis() - lastUpdateTime > refreshInterval)) {
+    return;
+  }
+
+  lastUpdateTime = millis();
+
+  if (is_pressed(190, 115, 260, 140, x, y)) {
+    newN += 1;
+    if (newN > 10) newN -= 10;
+    displayCurrentScreen();
+  } else if (is_pressed(390, 115, 455, 140, x, y)) {
+    newN -= 1;
+    if (newN < 0) newN = 0.01;
+    displayCurrentScreen();
+  } else if (is_pressed(190, 185, 260, 210, x, y)) {
+    newN += 0.1;
+    if (newN > 10) newN -= 10;
+    displayCurrentScreen();
+  } else if (is_pressed(390, 185, 455, 210, x, y)) {
+    newN -= 0.1;
+    if (newN < 0) newN = 0.01;
+    displayCurrentScreen();
+  } else if (is_pressed(190, 220, 260, 245, x, y)) {
+    newN += 0.01;
+    if (newN > 10) newN -= 10;
+    displayCurrentScreen();
+  } else if (is_pressed(390, 220, 455, 245, x, y)) {
+    newN -= 0.01;
+    if (newN < 0) newN = 0.01;
+    displayCurrentScreen();
+  }
+
+
+  if (newN > 10) newN -= 10;
+
+
+  if (is_pressed(445, 270, 480, 320, x, y)) {
+    currentN = newN;
+    currentScreen = 'T';
+  }
 }
 
 void select_M() {
@@ -313,7 +360,7 @@ void select_M() {
 void handle_Select_Material(int x, int y) {
 
   // x1 = 150 ,y1 = 65 , x2 = 460 , y2 = 175
-         if (is_pressed(150, 65, 180, 175, x, y)) {
+  if (is_pressed(150, 65, 180, 175, x, y)) {
     currentM = 0;
     currentScreen = 'T';
   } else if (is_pressed(195, 65, 230, 175, x, y)) {
