@@ -1,6 +1,7 @@
 #include "WString.h"
 #include "Arduino.h"
 #include "HardwareSerial.h"
+#include "StorageManager.h"
 #include "DisplayManager.h"
 #include <TouchScreen.h>
 #include <LCDWIKI_GUI.h>
@@ -41,10 +42,11 @@ void M();
 void H();
 void editN();
 void select_M();
+void showFileListScreen();
 void handle_Select_Material(int x, int y);
 void handle_Select_N(int x, int y);
 void drawGradient(uint16_t topColor, uint16_t bottomColor);
-void handle_SaveN(int x, int y);
+// void handle_SaveN(int x, int y);
 void menu(char m);
 void drawHeader(const char* title, bool showData);
 void drawWeight(int x, int y, const char* unit, bool largeFont);
@@ -61,7 +63,7 @@ bool limitSwitchState = false;
 int currentM = 0;
 float currentN = 9.25;
 float newN = 9.25;
-char currentScreen = 'e';
+char currentScreen = 'T';
 unsigned long lastUpdateTime = 0;
 const long refreshInterval = 500;
 
@@ -73,7 +75,7 @@ void initializeDisplay() {
   mylcd.Fill_Screen(BLACK);
   W();
   // delay(2000);
-  currentScreen = 'e';
+  currentScreen = 'M';
   mylcd.Fill_Screen(BLACK);
   displayCurrentScreen();
 }
@@ -106,16 +108,12 @@ void handleTouch() {
 
     if (is_pressed(0, 0, 105, 40, p.x, p.y)) {
       currentScreen = 'T';
-      mylcd.Fill_Screen(BLACK);
     } else if (is_pressed(106, 0, 212, 40, p.x, p.y)) {
       currentScreen = 'C';
-      mylcd.Fill_Screen(BLACK);
     } else if (is_pressed(213, 0, 318, 40, p.x, p.y)) {
       currentScreen = 'M';
-      mylcd.Fill_Screen(BLACK);
     } else if (is_pressed(370, 0, 480, 40, p.x, p.y)) {
       currentScreen = 'H';
-      mylcd.Fill_Screen(BLACK);
     } else if (currentScreen == 'T' && is_pressed(90, 60, 130, 155, p.x, p.y)) {
       currentScreen = 's';
     } else if (currentScreen == 'T' && is_pressed(150, 60, 200, 155, p.x, p.y)) {
@@ -126,13 +124,16 @@ void handleTouch() {
       handle_Select_N(p.x, p.y);
     }
 
-    Serial.print("x: ");
-    Serial.print(p.x);
-    Serial.print(" y: ");
-    Serial.println(p.y);
+    // Serial.print("x: ");
+    // Serial.print(p.x);
+    // Serial.print(" y: ");
+    // Serial.println(p.y);
 
-    if (oldScreen != currentScreen)
+
+    if (oldScreen != currentScreen) {
+      mylcd.Fill_Screen(BLACK);
       displayCurrentScreen();
+    }
   }
 }
 
@@ -254,17 +255,71 @@ void C() {
   mylcd.Set_Text_Size(6);
   mylcd.Set_Text_colour(WHITE);
   mylcd.Print_String("SAVE", 120, 260);
+
+  mylcd.Set_Text_Size(8);
+  mylcd.Print_String("+", 435, 150);
+  mylcd.Print_String("-", 435, 210);
 }
 
 void M() {
+
+  float samples[] = { 1, 2, 5 };
+  // if (logSessionData(
+  //       "s3.csv",  // ← تأكد أن الامتداد صحيح
+  //       "cotton",
+  //       1.25,
+  //       32,
+  //       23,
+  //       "2025/10/23",
+  //       3.6,
+  //       2,
+  //       5,
+  //       3,
+  //       1,
+  //       samples,  // ← مرر اسم المصفوفة
+  //       3         // ← عدد العينات الفعلي
+  //       )) {
+  //   Serial.println("Add to file successfully");
+  // }
+
   drawGradient(GREEN, BLACK);
   menu('M');
   drawHeader("MEMORY", true);
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(WHITE);
   mylcd.Print_String("Data Slots: 100% Free", 100, 60);
-  mylcd.Print_String("Material: ", 100, 100);
-  mylcd.Print_String(materials[currentM], 220, 100);
+  mylcd.Print_String("Material:", 100, 100);
+  mylcd.Print_String(materials[currentM], 260, 100);
+
+  mylcd.Set_Text_Size(8);
+  mylcd.Print_String("+", 435, 150);
+  mylcd.Print_String("-", 435, 210);
+  // mylcd.Draw_Triangle(435,150, 465,150,430,120);
+
+  mylcd.Set_Text_Size(4);
+  mylcd.Print_String("Delete", 335, 290);
+
+  //display list
+  showFileListScreen();
+}
+
+void showFileListScreen() {
+  String files = listFiles();
+  int y = 160;
+  mylcd.Set_Text_Size(4);
+  mylcd.Set_Text_colour(WHITE);
+  mylcd.Fill_Rectangle(70,y,320,300);
+
+  int lineStart = 0;
+  for (int i = 0; i < files.length(); i++) {
+    if (files[i] == '\n') {
+      String line = files.substring(lineStart, i);
+      mylcd.Print_String(line.c_str(), 80, y);
+      Serial.println(line.c_str());
+      y += 35;
+      lineStart = i + 1;
+    }
+  }
 }
 
 void H() {

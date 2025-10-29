@@ -5,17 +5,28 @@
 #include "DisplayManager.h"
 #include "LEDManager.h"
 #include "BatteryManager.h"
+#include "StorageManager.h"
+#include "StorageManager.h"
+
 
 TestSession session;
 bool isRecording = false;
 
 void setup() {
   initializeSerial();
-  initializeRTC();
+  // initializeRTC();
+  if (initializeSD(31)) {
+    Serial.println("SD جاهز");
+    writeToFile("log.txt", "بدء التشغيل");
+  } else {
+    Serial.println("فشل في تهيئة SD");
+  }
+
   // initializeSensors();
   initializeDisplay();
   // initializeLEDs();
-  // initializeBatteryMonitor(); // ← تهيئة مراقبة البطارية
+  // initializeBatteryMonitor();
+
   Serial.println("أرسل 'start' لبدء التسجيل أو 'end' لإنهائه");
 }
 
@@ -23,7 +34,7 @@ void loop() {
   handleTouch();
   // handleIncomingCommands();
   // updateLEDs();
-
+  
   // float voltage = getBatteryVoltage();
   // int percent = getBatteryPercentage();
 
