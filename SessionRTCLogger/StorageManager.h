@@ -3,15 +3,12 @@
 
 #include <Arduino.h>
 
-// Initializes the SD card with the given chip select pin
+// Initializes SD card and ensures the session file exists with header and test data
 bool initializeSD(uint8_t csPin);
 
-// Writes a single line of text to a file
-bool writeToFile(const char* filename, const String& data);
-
-// Logs a full session record in CSV format
-bool logSessionData(
-  const char* filename,
+// Appends a session record to the file
+bool appendSession(
+  int id,
   const String& material,
   float diameter,
   float humidity,
@@ -26,12 +23,22 @@ bool logSessionData(
   int sampleCount
 );
 
-// Reads the entire content of a file and returns it as a String
-String readFile(const char* filename);
+// Reads a session line by ID
+String getSessionById(int targetId);
 
-// Deletes a file from the SD card
-bool deleteFile(const char* filename);
+// Deletes a session by its ID
+bool deleteSessionById(int targetId);
 
-String listFiles();
+// Returns the number of stored sessions (excluding header)
+int getSessionCount();
+
+// Reads the full content of the session file
+String readAllSessions();
+
+// Deletes all session data (clears the file and keeps header)
+bool clearSessionFile();
+
+// Returns a list of all session IDs found in the file
+void getAllSessionIds(int* idList, int& count);
 
 #endif

@@ -42,7 +42,7 @@ void M();
 void H();
 void editN();
 void select_M();
-void showFileListScreen();
+String showFileListScreen();
 void handle_Select_Material(int x, int y);
 void handle_Select_N(int x, int y);
 void drawGradient(uint16_t topColor, uint16_t bottomColor);
@@ -136,9 +136,6 @@ void handleTouch() {
     }
   }
 }
-
-// باقي الدوال: drawGradient, menu, drawHeader, drawWeight, T, C, M, H, editN, select_M, displayCurrentScreen, is_pressed
-// تنقل كما هي من الكود الأصلي
 
 boolean is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py) {
   return (px > x1 && px < x2) && (py > y1 && py < y2);
@@ -262,34 +259,17 @@ void C() {
 }
 
 void M() {
-
-  float samples[] = { 1, 2, 5 };
-  // if (logSessionData(
-  //       "s3.csv",  // ← تأكد أن الامتداد صحيح
-  //       "cotton",
-  //       1.25,
-  //       32,
-  //       23,
-  //       "2025/10/23",
-  //       3.6,
-  //       2,
-  //       5,
-  //       3,
-  //       1,
-  //       samples,  // ← مرر اسم المصفوفة
-  //       3         // ← عدد العينات الفعلي
-  //       )) {
-  //   Serial.println("Add to file successfully");
-  // }
-
+  //display list
   drawGradient(GREEN, BLACK);
+
+  String material = showFileListScreen();
   menu('M');
   drawHeader("MEMORY", true);
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(WHITE);
   mylcd.Print_String("Data Slots: 100% Free", 100, 60);
   mylcd.Print_String("Material:", 100, 100);
-  mylcd.Print_String(materials[currentM], 260, 100);
+  mylcd.Print_String(material, 260, 100);
 
   mylcd.Set_Text_Size(8);
   mylcd.Print_String("+", 435, 150);
@@ -298,28 +278,78 @@ void M() {
 
   mylcd.Set_Text_Size(4);
   mylcd.Print_String("Delete", 335, 290);
-
-  //display list
-  showFileListScreen();
 }
 
-void showFileListScreen() {
-  String files = listFiles();
-  int y = 160;
-  mylcd.Set_Text_Size(4);
-  mylcd.Set_Text_colour(WHITE);
-  mylcd.Fill_Rectangle(70,y,320,300);
+String showFileListScreen() {
+  const int contentX = 75;
+  const int contentY = 160;
+  const int contentW = 320;
+  const int contentH = 300;
+  const int lineHeight = 25;
+  const int linesPerSession = 3;
+  const int maxSessions = contentH / (lineHeight * linesPerSession);
 
-  int lineStart = 0;
-  for (int i = 0; i < files.length(); i++) {
-    if (files[i] == '\n') {
-      String line = files.substring(lineStart, i);
-      mylcd.Print_String(line.c_str(), 80, y);
-      Serial.println(line.c_str());
-      y += 35;
-      lineStart = i + 1;
+  int ids[128];
+  int idCount = 0;
+
+  getAllSessionIds(ids, idCount);
+
+  mylcd.Set_Text_Size(3);
+  mylcd.Set_Text_colour(WHITE);
+  // mylcd.Fill_Rectangle(70, contentY, contentW, contentH);
+
+  int y = contentY;
+  int shown = 0;
+  String material;
+
+  for (int i = 0; i < idCount && shown < maxSessions; i++) {
+    String line = getSessionById(ids[i]);
+    if (line != "NOT FOUND") {
+      // تقسيم السطر إلى الحقول المطلوبة
+      String fields[15];
+      int fieldIndex = 0;
+      int lastIndex = 0;
+
+      for (int j = 0; j < line.length(); j++) {
+        if (line[j] == ',' || j == line.length() - 1) {
+          int endIndex = (j == line.length() - 1) ? j + 1 : j;
+          fields[fieldIndex++] = line.substring(lastIndex, endIndex);
+          lastIndex = j + 1;
+          if (fieldIndex >= 12) break;
+        }
+      }
+      material = fields[1];
+      String dateTime = fields[5];
+      String diameter = fields[2];
+      String temperature = fields[4];
+      String humidity = fields[3];
+      String minVal = fields[7];
+      String maxVal = fields[8];
+      String average = fields[6];
+
+      mylcd.Print_String(dateTime.c_str(), contentX, y);
+      y += lineHeight;
+
+      String line2 = " T:" + temperature + " H:" + humidity;
+      mylcd.Print_String(line2.c_str(), contentX, y);
+      y += lineHeight;
+
+      String line3 = "D:" + diameter + "Avg:" + average;
+      mylcd.Print_String(line3.c_str(), contentX, y);
+      y += lineHeight;
+
+      String line4 = "Min:" + minVal + " Max:" + maxVal;
+      mylcd.Print_String(line4.c_str(), contentX, y);
+
+      shown++;
     }
   }
+
+  if (idCount == 0) {
+    mylcd.Print_String("No sessions found", contentX, contentY + 10);
+  }
+
+  return material;
 }
 
 void H() {
