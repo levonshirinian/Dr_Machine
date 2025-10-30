@@ -52,10 +52,13 @@ void drawHeader(const char* title, bool showData);
 void drawWeight(int x, int y, const char* unit, bool largeFont);
 void displayCurrentScreen();
 boolean is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py);
+void MapPointRotuation(TSPoint& p);  // تم تحديث النمط لقبول TSPoint بالمرجع
+
 
 const char* materials[] = { "cotton", "wool", "linen", "jute", "silk", "polyester", "Nylon" };
 
 // Global state
+int currentRotation = 2;
 float currentTemp = 35.0;
 float currentHum = 70.0;
 float currentWeight = 0.0;
@@ -71,7 +74,7 @@ const long refreshInterval = 500;
 // initializeDisplay
 void initializeDisplay() {
   mylcd.Init_LCD();
-  mylcd.Set_Rotation(3);
+  mylcd.Set_Rotation(currentRotation);
   mylcd.Fill_Screen(BLACK);
   W();
   // delay(2000);
@@ -103,8 +106,7 @@ void handleTouch() {
   pinMode(A3, OUTPUT);
 
   if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
-    p.x = mylcd.Get_Display_Width() - map(p.x, TS_MINX, TS_MAXX, 0, mylcd.Get_Display_Width());
-    p.y = map(p.y, TS_MINY, TS_MAXY, 0, mylcd.Get_Display_Height());
+    MapPointRotuation(p);
 
     if (is_pressed(0, 0, 105, 40, p.x, p.y)) {
       currentScreen = 'T';
@@ -124,10 +126,10 @@ void handleTouch() {
       handle_Select_N(p.x, p.y);
     }
 
-    // Serial.print("x: ");
-    // Serial.print(p.x);
-    // Serial.print(" y: ");
-    // Serial.println(p.y);
+    Serial.print("x: ");
+    Serial.print(p.x);
+    Serial.print(" y: ");
+    Serial.println(p.y);
 
 
     if (oldScreen != currentScreen) {
@@ -480,4 +482,72 @@ void displayCurrentScreen() {
       select_M();
       break;
   }
+}
+
+
+void MapPointRotuation(TSPoint& p) {
+  // قيم اللمس الخام (لا تتغير حسب الدوران)
+  long rawX = p.x;
+  long rawY = p.y;
+
+  // معايرة المحاور الخام إلى النطاق البكسلي الثابت للشاشة (320x480)
+  // نفترض: X الخام (الطويل) -> 480، Y الخام (القصير) -> 320
+
+  // 1. معايرة X الخام إلى إحداثي الشاشة (0-480)
+  // TS_MINX/MAXX هي أبعاد اللمس للمحور الطويل
+  long mappedLong = map(rawX, TS_MINX, TS_MAXX, 0, 480);
+
+  // 2. معايرة Y الخام إلى إحداثي الشاشة (0-320)
+  // TS_MINY/MAXY هي أبعاد اللمس للمحور القصير
+  long mappedShort = map(rawY, TS_MINY, TS_MAXY, 0, 320);
+
+  // المتغيرات لتخزين إحداثيات البكسل النهائية بعد الدوران
+  long pixelX = 0;
+  long pixelY = 0;
+
+  // 3. تطبيق منطق الدوران بناءً على currentRotation
+  switch (currentRotation) {
+    case 0:  // 0 degrees (شاشة 320x480 عمودية)
+      mappedLong = map(rawX, TS_MINX, TS_MAXX, 0, 320);
+      mappedShort = map(rawY, TS_MINY, TS_MAXY, 0, 480);
+      // X الشاشة = Y المعايرة (القصير)
+      pixelX = 480 - mappedShort;
+      // Y الشاشة = X المعايرة (الطويل) معكوس
+      pixelY = 320 - mappedLong;
+      break;
+
+    case 1:  // 90 degrees (شاشة 480x320 أفقية) - الحالة الافتراضية في الكود
+      // X الشاشة = X المعايرة (الطويل)
+      pixelX = mappedLong;
+      // Y الشاشة = Y المعايرة (القصير) معكوس
+      pixelY = 320 - mappedShort;
+      break;
+
+    case 2:  // 180 degrees (شاشة 320x480 عمودية)
+      mappedLong = map(rawX, TS_MINX, TS_MAXX, 0, 320);
+      mappedShort = map(rawY, TS_MINY, TS_MAXY, 0, 480);
+      // X الشاشة = Y المعايرة (القصير) معكوس
+      pixelX = mappedShort;
+      // Y الشاشة = X المعايرة (الطويل)
+      pixelY = mappedLong;
+      break;
+
+    case 3:  // 270 degrees (شاشة 480x320 أفقية)
+      // X الشاشة = X المعايرة (الطويل) معكوس - (0,0) يصبح (480, 320)
+      pixelX = 480 - mappedLong;
+      // Y الشاشة = Y المعايرة (القصير)
+      pixelY = mappedShort;
+      break;
+
+    default:
+      // استخدام القيم المعايرة في حال عدم معرفة الدوران (0,0 في الأعلى اليسار الافتراضي)
+      pixelX = mappedLong;
+      pixelY = mappedShort;
+      break;
+  }
+
+  // تحديث إحداثيات النقطة بالإحداثيات النهائية
+  p.x = pixelX;
+  p.y = pixelY;
+  
 }
