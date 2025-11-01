@@ -4,7 +4,7 @@
 #include "StorageManager.h"
 #include "DisplayManager.h"
 #include <TouchScreen.h>
-#include <LCDWIKI_GUI.h>
+// #include <LCDWIKI_GUI.h>
 #include <LCDWIKI_KBV.h>
 #include <ArduinoJson.h>
 
@@ -12,6 +12,7 @@
 LCDWIKI_KBV mylcd(ILI9486, A3, A2, A1, A0, A4);
 TouchScreen ts = TouchScreen(8, A3, A2, 9, 300);
 
+#pragma region Colors
 // Colors
 #define BLACK 0x0000
 #define BLUE 0x001F
@@ -25,7 +26,9 @@ TouchScreen ts = TouchScreen(8, A3, A2, 9, 300);
 #define GRAY 0x8410
 #define DARKBLUE 0x0010
 #define DARKGRAY 0x4208
+#pragma endregion
 
+#pragma region Touch screen calibration
 // Touch screen calibration
 #define TS_MINX 906
 #define TS_MAXX 116
@@ -33,7 +36,9 @@ TouchScreen ts = TouchScreen(8, A3, A2, 9, 300);
 #define TS_MAXY 952
 #define MINPRESSURE 10
 #define MAXPRESSURE 1000
+#pragma endregion
 
+#pragma region Forward declarations for internal display functions
 // Forward declarations for internal display functions
 void W();
 void T();
@@ -42,7 +47,7 @@ void M();
 void H();
 void editN();
 void select_M();
-String showFileListScreen();
+String showFileListScreen(int targetId);
 void handle_Select_Material(int x, int y);
 void handle_Select_N(int x, int y);
 void drawGradient(uint16_t topColor, uint16_t bottomColor);
@@ -53,11 +58,11 @@ void drawWeight(int x, int y, const char* unit, bool largeFont);
 void displayCurrentScreen();
 boolean is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py);
 void MapPointRotuation(TSPoint& p);  // تم تحديث النمط لقبول TSPoint بالمرجع
+#pragma endregion
 
-
-const char* materials[] = { "cotton", "wool", "linen", "jute", "silk", "polyester", "Nylon" };
-
+#pragma region Global state
 // Global state
+const char* materials[] = { "cotton", "wool", "linen", "jute", "silk", "polyester", "Nylon" };
 int currentRotation = 2;
 float currentTemp = 35.0;
 float currentHum = 70.0;
@@ -66,9 +71,17 @@ bool limitSwitchState = false;
 int currentM = 0;
 float currentN = 9.25;
 float newN = 9.25;
-char currentScreen = 'T';
+char currentScreen = 'M';
 unsigned long lastUpdateTime = 0;
 const long refreshInterval = 500;
+
+#pragma region Read Session
+int sessionIndex[0];
+int sessionCount = 0;
+int currentSessionIndex = 0;
+#pragma endregion
+
+#pragma endregion
 
 
 // initializeDisplay
@@ -78,12 +91,10 @@ void initializeDisplay() {
   mylcd.Fill_Screen(BLACK);
   W();
   // delay(2000);
-  currentScreen = 'M';
   mylcd.Fill_Screen(BLACK);
   displayCurrentScreen();
 }
 
-// updateDisplay
 void updateDisplay(float temp, float hum, float weight, bool limitState) {
   currentTemp = temp;
   currentHum = hum;
@@ -96,46 +107,43 @@ void updateDisplay(float temp, float hum, float weight, bool limitState) {
   }
 }
 
-// handleTouch
 void handleTouch() {
-  // refresh only when the screen changed
-  char oldScreen = currentScreen;
 
   TSPoint p = ts.getPoint();
   pinMode(A2, OUTPUT);
   pinMode(A3, OUTPUT);
-
-  if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
-    MapPointRotuation(p);
-
-    if (is_pressed(0, 0, 105, 40, p.x, p.y)) {
-      currentScreen = 'T';
-    } else if (is_pressed(106, 0, 212, 40, p.x, p.y)) {
-      currentScreen = 'C';
-    } else if (is_pressed(213, 0, 318, 40, p.x, p.y)) {
-      currentScreen = 'M';
-    } else if (is_pressed(370, 0, 480, 40, p.x, p.y)) {
-      currentScreen = 'H';
-    } else if (currentScreen == 'T' && is_pressed(90, 60, 130, 155, p.x, p.y)) {
-      currentScreen = 's';
-    } else if (currentScreen == 'T' && is_pressed(150, 60, 200, 155, p.x, p.y)) {
-      currentScreen = 'e';
-    } else if (currentScreen == 's') {
-      handle_Select_Material(p.x, p.y);
-    } else if (currentScreen == 'e') {
-      handle_Select_N(p.x, p.y);
-    }
-
-    Serial.print("x: ");
-    Serial.print(p.x);
-    Serial.print(" y: ");
-    Serial.println(p.y);
+  if (!(p.z > MINPRESSURE && p.z < MAXPRESSURE)) return;
 
 
-    if (oldScreen != currentScreen) {
-      mylcd.Fill_Screen(BLACK);
-      displayCurrentScreen();
-    }
+  char oldScreen = currentScreen;
+  MapPointRotuation(p);
+  if (is_pressed(0, 0, 105, 40, p.x, p.y)) {
+    currentScreen = 'T';
+  } else if (is_pressed(106, 0, 212, 40, p.x, p.y)) {
+    currentScreen = 'C';
+  } else if (is_pressed(213, 0, 318, 40, p.x, p.y)) {
+    currentScreen = 'M';
+  } else if (is_pressed(370, 0, 480, 40, p.x, p.y)) {
+    currentScreen = 'H';
+  } else if (currentScreen == 'T' && is_pressed(90, 60, 130, 155, p.x, p.y)) {
+    currentScreen = 's';
+  } else if (currentScreen == 'T' && is_pressed(150, 60, 200, 155, p.x, p.y)) {
+    currentScreen = 'e';
+  } else if (currentScreen == 's') {
+    handle_Select_Material(p.x, p.y);
+  } else if (currentScreen == 'e') {
+    handle_Select_N(p.x, p.y);
+  }
+
+  Serial.print("x: ");
+  Serial.print(p.x);
+  Serial.print(" y: ");
+  Serial.println(p.y);
+
+
+  if (oldScreen != currentScreen) {
+    mylcd.Fill_Screen(BLACK);
+    displayCurrentScreen();
   }
 }
 
@@ -261,97 +269,97 @@ void C() {
 }
 
 void M() {
-  //display list
   drawGradient(GREEN, BLACK);
 
-  String material = showFileListScreen();
+  getAllSessionIds(sessionIndex, sessionCount);
+
+  currentSessionIndex = sessionCount - 1;
+  String material = showFileListScreen(sessionIndex);
+
   menu('M');
   drawHeader("MEMORY", true);
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(WHITE);
   mylcd.Print_String("Data Slots: 100% Free", 100, 60);
   mylcd.Print_String("Material:", 100, 100);
-  mylcd.Print_String(material, 260, 100);
+
+  String line = material + " " + String(currentSessionIndex) + "/" + String(sessionCount);
+  mylcd.Print_String(line.c_str(), 260, 100);
 
   mylcd.Set_Text_Size(8);
   mylcd.Print_String("+", 435, 150);
   mylcd.Print_String("-", 435, 210);
-  // mylcd.Draw_Triangle(435,150, 465,150,430,120);
 
   mylcd.Set_Text_Size(4);
   mylcd.Print_String("Delete", 335, 290);
 }
 
-String showFileListScreen() {
+String showSessionInfoScreen(int targetId) {
   const int contentX = 75;
   const int contentY = 160;
   const int contentW = 320;
   const int contentH = 300;
   const int lineHeight = 25;
-  const int linesPerSession = 3;
-  const int maxSessions = contentH / (lineHeight * linesPerSession);
-
-  int ids[128];
-  int idCount = 0;
-
-  getAllSessionIds(ids, idCount);
 
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(WHITE);
-  // mylcd.Fill_Rectangle(70, contentY, contentW, contentH);
+  mylcd.Fill_Rectangle(70, contentY, contentW, contentH);
 
-  int y = contentY;
-  int shown = 0;
-  String material;
+  String line = getSessionById(targetId);
+  if (line == "NOT FOUND") {
+    mylcd.Print_String("Session not found", contentX, contentY + 10);
+    return "";
+  }
 
-  for (int i = 0; i < idCount && shown < maxSessions; i++) {
-    String line = getSessionById(ids[i]);
-    if (line != "NOT FOUND") {
-      // تقسيم السطر إلى الحقول المطلوبة
-      String fields[15];
-      int fieldIndex = 0;
-      int lastIndex = 0;
+  // تقسيم السطر إلى الحقول المطلوبة
+  String fields[15];
+  int fieldIndex = 0;
+  int lastIndex = 0;
 
-      for (int j = 0; j < line.length(); j++) {
-        if (line[j] == ',' || j == line.length() - 1) {
-          int endIndex = (j == line.length() - 1) ? j + 1 : j;
-          fields[fieldIndex++] = line.substring(lastIndex, endIndex);
-          lastIndex = j + 1;
-          if (fieldIndex >= 12) break;
-        }
-      }
-      material = fields[1];
-      String dateTime = fields[5];
-      String diameter = fields[2];
-      String temperature = fields[4];
-      String humidity = fields[3];
-      String minVal = fields[7];
-      String maxVal = fields[8];
-      String average = fields[6];
-
-      mylcd.Print_String(dateTime.c_str(), contentX, y);
-      y += lineHeight;
-
-      String line2 = " T:" + temperature + " H:" + humidity;
-      mylcd.Print_String(line2.c_str(), contentX, y);
-      y += lineHeight;
-
-      String line3 = "D:" + diameter + "Avg:" + average;
-      mylcd.Print_String(line3.c_str(), contentX, y);
-      y += lineHeight;
-
-      String line4 = "Min:" + minVal + " Max:" + maxVal;
-      mylcd.Print_String(line4.c_str(), contentX, y);
-
-      shown++;
+  for (int j = 0; j < line.length(); j++) {
+    if (line[j] == ',' || j == line.length() - 1) {
+      int endIndex = (j == line.length() - 1) ? j + 1 : j;
+      fields[fieldIndex++] = line.substring(lastIndex, endIndex);
+      lastIndex = j + 1;
+      if (fieldIndex >= 12) break;
     }
   }
 
-  if (idCount == 0) {
-    mylcd.Print_String("No sessions found", contentX, contentY + 10);
-  }
+  String material = fields[1];
+  String dateTime = fields[5];
+  String diameter = fields[2];
+  String temperature = fields[4];
+  String humidity = fields[3];
+  String minVal = fields[7];
+  String maxVal = fields[8];
+  String average = fields[6];
+
+  int y = contentY;
+  mylcd.Print_String(dateTime.c_str(), contentX, y);
+  y += lineHeight;
+
+  String line2 = "T:" + temperature + " H:" + humidity;
+  mylcd.Print_String(line2.c_str(), contentX, y);
+  y += lineHeight;
+
+  String line3 = "D:" + diameter + " Avg:" + average;
+  mylcd.Print_String(line3.c_str(), contentX, y);
+  y += lineHeight;
+
+  String line4 = "Min:" + minVal + " Max:" + maxVal;
+  mylcd.Print_String(line4.c_str(), contentX, y);
 
   return material;
+}
+
+
+int circularDescendingIndex(int& idx, bool increment, int arraySize) {
+  if (increment) {
+    idx = (idx + 1) % arraySize;
+  } else {
+    idx = (idx - 1 + arraySize) % arraySize;
+  }
+  return arraySize - 1 - idx;
 }
 
 void H() {
@@ -549,5 +557,4 @@ void MapPointRotuation(TSPoint& p) {
   // تحديث إحداثيات النقطة بالإحداثيات النهائية
   p.x = pixelX;
   p.y = pixelY;
-  
 }

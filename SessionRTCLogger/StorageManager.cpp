@@ -1,14 +1,18 @@
 #include "StorageManager.h"
 #include <SD.h>
 
-const char* sessionFile = "sessions.csv";
+const char *sessionFile = "sessions.csv";
 
-bool initializeSD(uint8_t csPin) {
-  if (!SD.begin(csPin)) return false;
+bool initializeSD(uint8_t csPin)
+{
+  if (!SD.begin(csPin))
+    return false;
 
-  if (!SD.exists(sessionFile)) {
+  if (!SD.exists(sessionFile))
+  {
     File file = SD.open(sessionFile, FILE_WRITE);
-    if (!file) return false;
+    if (!file)
+      return false;
 
     file.println("id,material,diameter,humidity,temperature,dateTime,average,min,max,count,head,sample0,sample1,sample2,sample3,sample4,sample5,sample6,sample7,sample8,sample9");
     file.println("0,test,1.75,50.0,25.0,2025/10/30 14:00,12.5,10.0,15.0,10,1,12.5,13.0,12.8,13.1,12.9,13.2,13.0,12.7,13.3,13.0");
@@ -19,21 +23,23 @@ bool initializeSD(uint8_t csPin) {
 }
 
 bool appendSession(
-  int id,
-  const String& material,
-  float diameter,
-  float humidity,
-  float temperature,
-  const String& dateTime,
-  float average,
-  float minValue,
-  float maxValue,
-  int count,
-  int head,
-  const float samples[],
-  int sampleCount) {
+    int id,
+    const String &material,
+    float diameter,
+    float humidity,
+    float temperature,
+    const String &dateTime,
+    float average,
+    float minValue,
+    float maxValue,
+    int count,
+    int head,
+    const float samples[],
+    int sampleCount)
+{
   File file = SD.open(sessionFile, FILE_WRITE);
-  if (!file) return false;
+  if (!file)
+    return false;
 
   String line = "";
   line += String(id) + ",";
@@ -48,10 +54,14 @@ bool appendSession(
   line += String(count) + ",";
   line += String(head);
 
-  for (int i = 0; i < 10; i++) {
-    if (i < sampleCount) {
+  for (int i = 0; i < 10; i++)
+  {
+    if (i < sampleCount)
+    {
       line += "," + String(samples[i], 2);
-    } else {
+    }
+    else
+    {
       line += ",";
     }
   }
@@ -61,23 +71,29 @@ bool appendSession(
   return true;
 }
 
-String getSessionById(int targetId) {
+String getSessionById(int targetId)
+{
   File file = SD.open(sessionFile);
-  if (!file) return "ERROR: File not found";
+  if (!file)
+    return "ERROR: File not found";
 
   bool skipHeader = true;
-  while (file.available()) {
+  while (file.available())
+  {
     String line = file.readStringUntil('\n');
-    if (skipHeader) {
+    if (skipHeader)
+    {
       skipHeader = false;
       continue;
     }
 
     int commaIndex = line.indexOf(',');
-    if (commaIndex == -1) continue;
+    if (commaIndex == -1)
+      continue;
 
     int id = line.substring(0, commaIndex).toInt();
-    if (id == targetId) {
+    if (id == targetId)
+    {
       file.close();
       return line;
     }
@@ -87,27 +103,34 @@ String getSessionById(int targetId) {
   return "NOT FOUND";
 }
 
-bool deleteSessionById(int targetId) {
-  if (!SD.exists(sessionFile)) return false;
+bool deleteSessionById(int targetId)
+{
+  if (!SD.exists(sessionFile))
+    return false;
 
   File original = SD.open(sessionFile);
-  if (!original) return false;
+  if (!original)
+    return false;
 
   String lines[128];
   int count = 0;
 
-  while (original.available()) {
+  while (original.available())
+  {
     String line = original.readStringUntil('\n');
-    if (count == 0) {
-      lines[count++] = line;  // keep header
+    if (count == 0)
+    {
+      lines[count++] = line; // keep header
       continue;
     }
 
     int commaIndex = line.indexOf(',');
-    if (commaIndex == -1) continue;
+    if (commaIndex == -1)
+      continue;
 
     int id = line.substring(0, commaIndex).toInt();
-    if (id != targetId) {
+    if (id != targetId)
+    {
       lines[count++] = line;
     }
   }
@@ -116,9 +139,11 @@ bool deleteSessionById(int targetId) {
   SD.remove(sessionFile);
 
   File updated = SD.open(sessionFile, FILE_WRITE);
-  if (!updated) return false;
+  if (!updated)
+    return false;
 
-  for (int i = 0; i < count; i++) {
+  for (int i = 0; i < count; i++)
+  {
     updated.println(lines[i]);
   }
 
@@ -126,32 +151,40 @@ bool deleteSessionById(int targetId) {
   return true;
 }
 
-int getSessionCount() {
+int getSessionCount()
+{
   File file = SD.open(sessionFile);
-  if (!file) return 0;
+  if (!file)
+    return 0;
 
   int count = 0;
   bool skipHeader = true;
 
-  while (file.available()) {
+  while (file.available())
+  {
     String line = file.readStringUntil('\n');
-    if (skipHeader) {
+    if (skipHeader)
+    {
       skipHeader = false;
       continue;
     }
-    if (line.length() > 0) count++;
+    if (line.length() > 0)
+      count++;
   }
 
   file.close();
   return count;
 }
 
-String readAllSessions() {
+String readAllSessions()
+{
   File file = SD.open(sessionFile);
-  if (!file) return "ERROR: File not found";
+  if (!file)
+    return "ERROR: File not found";
 
   String content = "";
-  while (file.available()) {
+  while (file.available())
+  {
     content += file.readStringUntil('\n') + "\n";
   }
 
@@ -159,40 +192,50 @@ String readAllSessions() {
   return content;
 }
 
-void getAllSessionIds(int* idList, int& count) {
+void getAllSessionIds(int *idList, int &count)
+{
   count = 0;
   File file = SD.open(sessionFile);
-  if (!file) return;
+  if (!file)
+    return;
 
   bool skipHeader = true;
-  while (file.available()) {
+  while (file.available())
+  {
     String line = file.readStringUntil('\n');
-    if (skipHeader) {
+    if (skipHeader)
+    {
       skipHeader = false;
       continue;
     }
 
     int commaIndex = line.indexOf(',');
-    if (commaIndex == -1) continue;
+    if (commaIndex == -1)
+      continue;
 
     String idStr = line.substring(0, commaIndex);
-    idStr.trim();  // remove any spaces
+    idStr.trim(); // remove any spaces
     int id = idStr.toInt();
 
-    if (id >= 0) {
+    if (id >= 0)
+    {
       idList[count++] = id;
-      if (count >= 128) break;  // prevent overflow
+      if (count >= 128)
+        break; // prevent overflow
     }
   }
 
   file.close();
 }
 
-bool clearSessionFile() {
-  if (SD.exists(sessionFile)) {
+bool clearSessionFile()
+{
+  if (SD.exists(sessionFile))
+  {
     SD.remove(sessionFile);
     File file = SD.open(sessionFile, FILE_WRITE);
-    if (!file) return false;
+    if (!file)
+      return false;
     file.println("id,material,diameter,humidity,temperature,dateTime,average,min,max,count,head,sample0,sample1,sample2,sample3,sample4,sample5,sample6,sample7,sample8,sample9");
     file.close();
     return true;
