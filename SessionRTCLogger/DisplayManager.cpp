@@ -1,6 +1,7 @@
 #include "WString.h"
 #include "Arduino.h"
 #include "HardwareSerial.h"
+#include "GraphViewer.h"
 #include "StorageManager.h"
 #include "DisplayManager.h"
 #include <TouchScreen.h>
@@ -47,16 +48,16 @@ void M();
 void H();
 void editN();
 void select_M();
-String showFileListScreen(int targetId);
+String showSessionInfoScreen(int targetId);
 void handle_Select_Material(int x, int y);
 void handle_Select_N(int x, int y);
 void drawGradient(uint16_t topColor, uint16_t bottomColor);
-// void handle_SaveN(int x, int y);
 void menu(char m);
 void drawHeader(const char* title, bool showData);
 void drawWeight(int x, int y, const char* unit, bool largeFont);
 void displayCurrentScreen();
 boolean is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py);
+void loadSessionToGraph(int id);
 void MapPointRotuation(TSPoint& p);  // تم تحديث النمط لقبول TSPoint بالمرجع
 #pragma endregion
 
@@ -274,7 +275,7 @@ void M() {
   getAllSessionIds(sessionIndex, sessionCount);
 
   currentSessionIndex = sessionCount - 1;
-  String material = showFileListScreen(sessionIndex);
+  String material = showSessionInfoScreen(sessionIndex);
 
   menu('M');
   drawHeader("MEMORY", true);
@@ -558,3 +559,33 @@ void MapPointRotuation(TSPoint& p) {
   p.x = pixelX;
   p.y = pixelY;
 }
+
+void loadSessionToGraph(int id) {
+  GraphSession gSession; // تعريف محلي داخل الدالة فقط
+
+  String line = getSessionById(id);
+  if (line == "NOT FOUND") return;
+
+  gSession.reset();
+
+  int fieldIndex = 0;
+  int lastIndex = 0;
+  String fields[25];
+
+  for (int j = 0; j < line.length(); j++) {
+    if (line[j] == ',' || j == line.length() - 1) {
+      int endIndex = (j == line.length() - 1) ? j + 1 : j;
+      fields[fieldIndex++] = line.substring(lastIndex, endIndex);
+      lastIndex = j + 1;
+    }
+  }
+
+  for (int i = 0; i < 10; i++) {
+    float val = fields[11 + i].toFloat();
+    gSession.addPoint(val, i);
+  }
+
+  drawGraph(gSession);
+}
+
+
