@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-void initializeLEDs();
+bool initializeLEDs();
 void updateLEDs();
 
 #endif

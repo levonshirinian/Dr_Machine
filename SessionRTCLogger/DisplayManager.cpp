@@ -58,13 +58,14 @@ void drawWeight(int x, int y, const char* unit, bool largeFont);
 void displayCurrentScreen();
 boolean is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py);
 void loadSessionToGraph(int id);
+int circularDescendingIndex(int& idx, bool increment, int arraySize);
 void MapPointRotuation(TSPoint& p);  // تم تحديث النمط لقبول TSPoint بالمرجع
 #pragma endregion
 
 #pragma region Global state
 // Global state
 const char* materials[] = { "cotton", "wool", "linen", "jute", "silk", "polyester", "Nylon" };
-int currentRotation = 2;
+int currentRotation = 3;
 float currentTemp = 35.0;
 float currentHum = 70.0;
 float currentWeight = 0.0;
@@ -77,7 +78,7 @@ unsigned long lastUpdateTime = 0;
 const long refreshInterval = 500;
 
 #pragma region Read Session
-int sessionIndex[0];
+int sessionIndex[128];
 int sessionCount = 0;
 int currentSessionIndex = 0;
 #pragma endregion
@@ -94,6 +95,10 @@ void initializeDisplay() {
   // delay(2000);
   mylcd.Fill_Screen(BLACK);
   displayCurrentScreen();
+
+  getAllSessionIds(sessionIndex, sessionCount);
+
+  currentSessionIndex = sessionCount - 1;
 }
 
 void updateDisplay(float temp, float hum, float weight, bool limitState) {
@@ -134,6 +139,26 @@ void handleTouch() {
     handle_Select_Material(p.x, p.y);
   } else if (currentScreen == 'e') {
     handle_Select_N(p.x, p.y);
+  } else if (currentScreen == 'M' && is_pressed(230, 290, 320, 320, p.x, p.y)) {
+    Serial.println("Up");
+    Serial.print("Before: ");
+    Serial.println(currentSessionIndex);
+    circularDescendingIndex(currentSessionIndex, true, sessionCount);
+    Serial.print("After: ");
+    Serial.println(currentSessionIndex);
+  } else if (currentScreen == 'M' && is_pressed(321, 290, 410, 320, p.x, p.y)) {
+    Serial.println("Down");
+    Serial.print("Before: ");
+    Serial.println(currentSessionIndex);
+    circularDescendingIndex(currentSessionIndex, false, sessionCount);
+    Serial.print("After: ");
+    Serial.println(currentSessionIndex);
+  } else if (currentScreen == 'M' && is_pressed(445, 230, 480, 320, p.x, p.y)) {
+    deleteSessionById(currentSessionIndex);
+    Serial.println("Delete");
+  } else if (currentScreen == 'M' && is_pressed(450, 45, 480, 125, p.x, p.y)) {
+    // void drawGraph(GraphSession & sess);
+    loadSessionToGraph(currentSessionIndex);
   }
 
   Serial.print("x: ");
@@ -272,10 +297,7 @@ void C() {
 void M() {
   drawGradient(GREEN, BLACK);
 
-  getAllSessionIds(sessionIndex, sessionCount);
-
-  currentSessionIndex = sessionCount - 1;
-  String material = showSessionInfoScreen(sessionIndex);
+  String material = showSessionInfoScreen(currentSessionIndex);
 
   menu('M');
   drawHeader("MEMORY", true);
@@ -293,6 +315,8 @@ void M() {
 
   mylcd.Set_Text_Size(4);
   mylcd.Print_String("Delete", 335, 290);
+
+  mylcd.Print_String("Graph", 72, 290);
 }
 
 String showSessionInfoScreen(int targetId) {
@@ -326,6 +350,7 @@ String showSessionInfoScreen(int targetId) {
     }
   }
 
+  String Id = fields[0];
   String material = fields[1];
   String dateTime = fields[5];
   String diameter = fields[2];
@@ -349,6 +374,10 @@ String showSessionInfoScreen(int targetId) {
 
   String line4 = "Min:" + minVal + " Max:" + maxVal;
   mylcd.Print_String(line4.c_str(), contentX, y);
+  y += lineHeight;
+
+  String line5 = "Id:" + Id;
+  mylcd.Print_String(line5.c_str(), contentX, y);
 
   return material;
 }
@@ -561,7 +590,7 @@ void MapPointRotuation(TSPoint& p) {
 }
 
 void loadSessionToGraph(int id) {
-  GraphSession gSession; // تعريف محلي داخل الدالة فقط
+  GraphSession gSession;  // تعريف محلي داخل الدالة فقط
 
   String line = getSessionById(id);
   if (line == "NOT FOUND") return;
@@ -587,5 +616,3 @@ void loadSessionToGraph(int id) {
 
   drawGraph(gSession);
 }
-
-

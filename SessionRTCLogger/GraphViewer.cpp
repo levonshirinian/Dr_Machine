@@ -12,6 +12,8 @@
 #define BG_COLOR TFT_BLACK
 #define TEXT_COLOR TFT_WHITE
 
+MCUFRIEND_kbv tft;
+
 float globalMaxY = 100;
 GraphSession graphSession;
 
@@ -72,6 +74,10 @@ void drawAxes(float maxY) {
 }
 
 void drawGraph(GraphSession& sess) {
+  uint16_t ID = tft.readID();
+  if (ID == 0xD3D3) ID = 0x9486;
+  tft.begin(ID);
+  tft.setRotation(3);
   if (sess.count < 2) return;
 
   float minVal = sess.dataPoints[0].value;

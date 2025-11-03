@@ -1,18 +1,21 @@
 #include "LEDManager.h"
 #include <Adafruit_NeoPixel.h>
 
-#define LED_PIN     6
-#define NUM_LEDS    1
+#define LED_PIN 22
+#define NUM_LEDS 1
 
 Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 unsigned long previousMillis = 0;
-const long interval = 150; // مدة التغيير بالمللي ثانية
+const long interval = 150;  // مدة التغيير بالمللي ثانية
 
-void initializeLEDs() {
-  strip.begin();
+bool initializeLEDs() {
+  if (!strip.begin()) {
+    return false;
+  }
   strip.show();
   randomSeed(analogRead(0));
+  return true;
 }
 
 void updateLEDs() {
@@ -29,4 +32,4 @@ void updateLEDs() {
     }
     strip.show();
   }
-} 
+}

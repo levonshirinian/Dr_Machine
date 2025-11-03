@@ -13,37 +13,28 @@ TestSession session;
 bool isRecording = false;
 
 void setup() {
-  initializeRTC();
-  if (initializeSD(31)) {
-    Serial.println("SD جاهز");
+  Serial.begin(115200);
+  if (!initializeRTC()) {
+    Serial.println("Failed to initialize RTC");
   } else {
-    Serial.println("فشل في تهيئة SD");
+    Serial.println("RTC initialized successfully");
   }
-
-  initializeSensors();
+  if (initializeSD(53)) {
+    Serial.println("SD initialized successfully");
+  } else {
+    Serial.println("Failed to initialize SD");
+  }
+  if(initializeLEDs()){
+    Serial.println("LED initialized successfully");
+  } else {
+    Serial.println("Failed to initialize LED");
+  }
   initializeDisplay();
-  initializeLEDs();
   initializeBatteryMonitor();
 
-  initializeSD(10);  // تهيئة البطاقة
+  initializeSensors();
 
-  float samples[10] = { 12.5, 13.0, 12.8, 13.1, 12.9, 13.2, 13.0, 12.7, 13.3, 13.0 };
-  appendSession(
-    1,
-    "cotton",
-    1.75,
-    55.2,
-    28.5,
-    "2025/10/30 14:42",
-    12.95,
-    12.5,
-    13.3,
-    10,
-    1,
-    samples,
-    10);
-
-  Serial.println("أرسل 'start' لبدء التسجيل أو 'end' لإنهائه");
+  Serial.println("Welcome DTX");
 }
 
 void loop() {

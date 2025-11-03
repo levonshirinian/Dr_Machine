@@ -1,6 +1,6 @@
 #include "BatteryManager.h"
 
-const int batteryPin = A0;  // مدخل ADC
+const int batteryPin = A8;  // مدخل ADC
 float voltage = 0.0;
 int batteryPercent = 0;
 
@@ -10,7 +10,8 @@ void initializeBatteryMonitor() {
 
 float getBatteryVoltage() {
   int raw = analogRead(batteryPin);
-  voltage = (raw / 1023.0) * 5.0 * 2;  // ضرب بـ2 إذا كنت تستخدم مقسم جهد
+  voltage = raw;
+  voltage = (map(raw, 0, 1023, 0, 5000)) / 1000.0;
   return voltage;
 }
 

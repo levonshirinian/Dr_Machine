@@ -3,11 +3,11 @@
 #include "HX711.h"
 #include <Arduino.h>
 
-#define DHTPIN 32
+#define DHTPIN 24
 #define DHTTYPE DHT11
-const int LOADCELL_DOUT_PIN = 27;
-const int LOADCELL_SCK_PIN = 26;
-const int LIMIT_SWITCH_PIN = 25;
+const int LOADCELL_DOUT_PIN = 26;
+const int LOADCELL_SCK_PIN = 28; // 26
+const int LIMIT_SWITCH_PIN = 23; // 23
 
 DHT dht(DHTPIN, DHTTYPE);
 HX711 scale;

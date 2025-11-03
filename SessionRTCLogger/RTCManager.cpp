@@ -3,7 +3,7 @@
 
 RTC_DS3231 rtc;
 
-void initializeRTC() {
+bool initializeRTC() {
 #if defined(ESP32)
   Wire.begin(21, 22); // SDA = GPIO21, SCL = GPIO22
 #else
@@ -11,12 +11,12 @@ void initializeRTC() {
 #endif
 
   if (!rtc.begin()) {
-    Serial.println("❌ لم يتم العثور على وحدة RTC");
-    // while (1);
+    return false;
   }
 
   // استخدم هذا السطر مرة واحدة فقط لضبط الوقت حسب وقت الكومبايل
   // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  return true;
 }
 
 String getFormattedDateTime() {
