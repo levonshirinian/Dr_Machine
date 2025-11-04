@@ -60,9 +60,14 @@ void drawAxes(float maxY) {
     tft.setCursor(x - 5, GRAPH_Y + GRAPH_H + 5);
     tft.print(label);
   }
+  
+  tft.setTextSize(4);
+  tft.setTextColor(TEXT_COLOR);
+  // set cursor for "Exit" button to bottom left corner
+  tft.setCursor(10, GRAPH_Y + GRAPH_H + 30);
+  tft.print("Exit");
 
   tft.setTextSize(2);
-  tft.setTextColor(TEXT_COLOR);
   tft.setCursor(GRAPH_X + GRAPH_W / 2 - 30, GRAPH_Y + GRAPH_H + 20);
   tft.print("Time (s)");
 

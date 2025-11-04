@@ -24,7 +24,7 @@ void setup() {
   } else {
     Serial.println("Failed to initialize SD");
   }
-  if(initializeLEDs()){
+  if (initializeLEDs()) {
     Serial.println("LED initialized successfully");
   } else {
     Serial.println("Failed to initialize LED");
@@ -44,16 +44,25 @@ void loop() {
   float voltage = getBatteryVoltage();
   int percent = getBatteryPercentage();
 
-  Serial.print("Voltage: ");
-  Serial.print(voltage);
-  Serial.print(" V | Charge: ");
-  Serial.print(percent);
-  Serial.println(" %");
 
-  if (isRecording && session.shouldTakeSample()) {
+  if (session.shouldTakeSample()) {  //isRecording &&
+    // Serial.print("Voltage: ");
+    // Serial.print(voltage);
+    // Serial.print(" V | Charge: ");
+    // Serial.print(percent);
+    // Serial.println(" %");
+
     SensorData data = readSensors();
-    session.addSample(data.weight, millis());
-    session.setEnvironment(data.temperature, data.humidity, data.filamentDiameter);
+    // Serial.print("temperature: ");
+    // Serial.print(data.temperature);
+    // Serial.print(" humidity: ");
+    // Serial.print(data.humidity);
+    // Serial.print(" filamentDiameter: ");
+    // Serial.print(data.filamentDiameter);
+    // Serial.print(" weight: ");
+    // Serial.println(data.weight);
+    // session.addSample(data.weight, millis());
+    // session.setEnvironment(data.temperature, data.humidity, data.filamentDiameter);
     updateDisplay(data.temperature, data.humidity, data.weight, data.limitSwitch);
   }
 }
