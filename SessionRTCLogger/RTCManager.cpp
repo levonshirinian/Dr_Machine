@@ -10,6 +10,8 @@ bool initializeRTC() {
   Wire.begin();       // SDA = A4, SCL = A5
 #endif
 
+
+
   if (!rtc.begin()) {
     return false;
   }

@@ -71,7 +71,8 @@ unsigned long lastUpdateTime = 0;
 const long refreshInterval = 500;
 int sessionIndex[128];
 int sessionCount = 0;
-int currentSessionIndex = 0;
+int actualCurrentIndex = 0;
+int currentIdx = 0;
 #pragma endregion
 
 void initializeDisplay() {
@@ -82,7 +83,16 @@ void initializeDisplay() {
   mylcd.Fill_Screen(BLACK);
   displayCurrentScreen();
   getAllSessionIds(sessionIndex, sessionCount);
-  currentSessionIndex = sessionCount - 1;
+  for (int i = 0; i < sessionCount; i++) {
+    Serial.print("#: ");
+    Serial.print(i);
+    Serial.print("\t|Session ID: ");
+    Serial.println(sessionIndex[i]);
+  }
+  actualCurrentIndex = sessionIndex[sessionCount - 1];
+  Serial.print("Actual Current Index: ");
+  Serial.println(actualCurrentIndex);
+
 }
 
 void updateValuesOnScreen() {
@@ -118,11 +128,12 @@ void updateValuesOnScreen() {
 }
 
 void updateDisplaySession(){
-  String material = showSessionInfoScreen(currentSessionIndex);
+  String material = showSessionInfoScreen(sessionIndex[actualCurrentIndex]);
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(WHITE);
   mylcd.Set_Text_Back_colour(BLACK);
-  String line = material + " " + String(currentSessionIndex) + "/" + String(sessionCount);
+  String line = material + " " + String(currentIdx + 1) + "/" + String(sessionCount);
+  mylcd.Set_Draw_color(BLACK);
   mylcd.Fill_Rectangle(260, 100, 480, 125); 
   mylcd.Print_String(line.c_str(), 260, 100);
 }
@@ -161,11 +172,11 @@ void handleTouch() {
   else if (currentScreen == 'T' && is_pressed(90, 60, 130, 155, p.x, p.y)) currentScreen = 's';
   else if (currentScreen == 'T' && is_pressed(150, 60, 200, 155, p.x, p.y)) currentScreen = 'e';
   else if (currentScreen == 's') handle_Select_Material(p.x, p.y);
-  else if (currentScreen == 'e'){ handle_Select_N(p.x, p.y);  Serial.println("handle_Select_N called");}
+  else if (currentScreen == 'e'){ handle_Select_N(p.x, p.y); }
   else if (currentScreen == 'M') {
-    if (is_pressed(230, 290, 320, 320, p.x, p.y)){ circularDescendingIndex(currentSessionIndex, true, sessionCount); updateDisplaySession(); }
-    else if (is_pressed(321, 290, 410, 320, p.x, p.y)){ circularDescendingIndex(currentSessionIndex, false, sessionCount); updateDisplaySession(); }
-    else if (is_pressed(445, 230, 480, 320, p.x, p.y)) deleteSessionById(currentSessionIndex);
+    if (is_pressed(230, 290, 320, 320, p.x, p.y)){ actualCurrentIndex = circularDescendingIndex(currentIdx, true, sessionCount);  updateDisplaySession(); }
+    else if (is_pressed(321, 290, 410, 320, p.x, p.y)){ actualCurrentIndex = circularDescendingIndex(currentIdx, false, sessionCount);  updateDisplaySession(); }
+    else if (is_pressed(445, 230, 480, 320, p.x, p.y)) deleteSessionById(sessionIndex[actualCurrentIndex]);
     else if (is_pressed(450, 45, 480, 125, p.x, p.y)) currentScreen = 'g';
   }
 
@@ -174,10 +185,8 @@ void handleTouch() {
     displayCurrentScreen();
   }
 
-  Serial.print("X: "); Serial.print(p.x);
-  Serial.print(" Y: "); Serial.println(p.y);
-  Serial.print("currentScreen: "); Serial.println(currentScreen);
-
+  // Serial.print("X: "); Serial.print(p.x);
+  // Serial.print(" Y: "); Serial.println(p.y);
 }
 
 boolean is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py) {
@@ -285,14 +294,14 @@ void C() {
 
 void M() {
   mylcd.Fill_Screen(BLACK);
-  String material = showSessionInfoScreen(currentSessionIndex);
+  String material = showSessionInfoScreen(sessionIndex[actualCurrentIndex]);
   menu('M');
   drawHeader("MEMORY", true);
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(WHITE);
   mylcd.Print_String("Data Slots: 100% Free", 100, 60);
   mylcd.Print_String("Material:", 100, 100);
-  String line = material + " " + String(currentSessionIndex) + "/" + String(sessionCount);
+  String line = material + " " + String(currentIdx + 1) + "/" + String(sessionCount);
   mylcd.Print_String(line.c_str(), 260, 100);
   mylcd.Set_Text_Size(8);
   mylcd.Print_String("+", 435, 150);
@@ -382,7 +391,7 @@ void displayCurrentScreen() {
     case 'H': H(); break;
     case 'e': editN(); break;
     case 's': select_M(); break;
-    case 'g': loadSessionToGraph(currentSessionIndex); break;
+    case 'g': loadSessionToGraph(sessionIndex[actualCurrentIndex]); break;
   }
 }
 

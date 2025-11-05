@@ -42,12 +42,13 @@ bool appendSession(
 
   // Get last ID
   int lastId = getLastSessionId();
-  if (lastId == -1) {
-    lastId = 0;  // If no sessions exist, start with ID 0
+  if (lastId == -1)
+  {
+    lastId = 0; // If no sessions exist, start with ID 0
   }
 
   String line = "";
-  line += String(lastId) + ",";
+  line += String(lastId + 1) + ",";
   line += material + ",";
   line += String(diameter, 2) + ",";
   line += String(humidity, 2) + ",";
