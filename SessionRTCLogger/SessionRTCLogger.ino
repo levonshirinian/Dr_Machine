@@ -39,18 +39,18 @@ void setup() {
 
 void loop() {
   handleTouch();
-  updateLEDs();
 
   float voltage = getBatteryVoltage();
   int percent = getBatteryPercentage();
 
 
-  if (session.shouldTakeSample()) {  //isRecording &&
-    // Serial.print("Voltage: ");
-    // Serial.print(voltage);
-    // Serial.print(" V | Charge: ");
-    // Serial.print(percent);
-    // Serial.println(" %");
+  if (isRecording && session.shouldTakeSample()) {
+    Serial.println(getFormattedDateTime());
+    Serial.print("Voltage: ");
+    Serial.print(voltage);
+    Serial.print(" V | Charge: ");
+    Serial.print(percent);
+    Serial.println(" %");
 
     SensorData data = readSensors();
     // Serial.print("temperature: ");
@@ -64,5 +64,9 @@ void loop() {
     // session.addSample(data.weight, millis());
     // session.setEnvironment(data.temperature, data.humidity, data.filamentDiameter);
     updateDisplay(data.temperature, data.humidity, data.weight, data.limitSwitch);
+    updateLEDStatus();
+    if (data.limitSwitch) {
+      showCalibrationMode();
+    }
   }
 }

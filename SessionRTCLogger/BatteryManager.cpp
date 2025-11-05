@@ -1,6 +1,6 @@
 #include "BatteryManager.h"
+#include "Config.h"
 
-const int batteryPin = A8;  // مدخل ADC
 float voltage = 0.0;
 int batteryPercent = 0;
 
@@ -20,4 +20,13 @@ int getBatteryPercentage() {
   batteryPercent = map(v * 100, 300, 420, 0, 100);
   batteryPercent = constrain(batteryPercent, 0, 100);
   return batteryPercent;
+}
+
+float previousVoltage = 0.0;
+
+bool isBatteryCharging() {
+  float currentVoltage = getBatteryVoltage();
+  bool charging = currentVoltage > previousVoltage + 0.02; // فرق بسيط يدل على الشحن
+  previousVoltage = currentVoltage;
+  return charging;
 }

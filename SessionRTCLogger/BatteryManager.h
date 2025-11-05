@@ -6,5 +6,5 @@
 void initializeBatteryMonitor();
 float getBatteryVoltage();
 int getBatteryPercentage();
-
+bool isBatteryCharging();
 #endif

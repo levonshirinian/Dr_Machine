@@ -11,6 +11,12 @@
 #define CALIBRATE_BUTTON_PIN   3   // Button to calibrate the scale
 #define READ_BUTTON_PIN        4   // Button to read weight
 
+#define LED_PIN         22         // NeoPixel LED pin
+#define NUM_LEDS        1          // Number of NeoPixel LEDs
+#define TEST_BUTTON_PIN 2
+
+#define batteryPin A8              // Battery voltage ADC pin
+
 // -----------------------------
 // Calibration Settings
 // -----------------------------

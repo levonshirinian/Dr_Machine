@@ -1,35 +1,60 @@
 #include "LEDManager.h"
+#include "BatteryManager.h"
+#include "Config.h"
 #include <Adafruit_NeoPixel.h>
 
-#define LED_PIN 22
-#define NUM_LEDS 1
-
+// Create NeoPixel strip instance
 Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-unsigned long previousMillis = 0;
-const long interval = 150;  // مدة التغيير بالمللي ثانية
+// Blinking state variables
+unsigned long previousBlinkMillis = 0;
+const unsigned long blinkInterval = 500;
+bool blinkState = false;
 
+// Initializes the LED strip
 bool initializeLEDs() {
   if (!strip.begin()) {
     return false;
   }
   strip.show();
-  randomSeed(analogRead(0));
   return true;
 }
 
-void updateLEDs() {
+// Sets the LED to a specific RGB color
+void setColor(uint8_t r, uint8_t g, uint8_t b) {
+  strip.setPixelColor(0, strip.Color(r, g, b));
+  strip.show();
+}
+
+// Blinks the LED in orange
+void blinkOrange() {
   unsigned long currentMillis = millis();
-
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;
-
-    for (int i = 0; i < NUM_LEDS; i++) {
-      uint8_t r = random(0, 256);
-      uint8_t g = random(0, 256);
-      uint8_t b = random(0, 256);
-      strip.setPixelColor(i, strip.Color(r, g, b));
+  if (currentMillis - previousBlinkMillis >= blinkInterval) {
+    previousBlinkMillis = currentMillis;
+    blinkState = !blinkState;
+    if (blinkState) {
+      setColor(255, 165, 0); // Orange
+    } else {
+      setColor(0, 0, 0);     // Off
     }
-    strip.show();
   }
+}
+
+// Updates LED color based on battery percentage
+void updateLEDStatus() {
+  float voltage = getBatteryVoltage(); // From BatteryManager
+  int batteryPercent = getBatteryPercentage(); // From BatteryManager
+
+  if (isBatteryCharging()) {
+    blinkOrange();  // Orange blinking
+  } else if (batteryPercent >= 95) {
+    setColor(0, 255, 0); // Green
+  } else if (batteryPercent <= 20) {
+    setColor(255, 0, 0); // Red
+  }
+}
+
+// Shows purple color for calibration mode
+void showCalibrationMode() {
+  setColor(0, 0, 128); // Dark Blue
 }

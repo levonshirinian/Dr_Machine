@@ -3,7 +3,13 @@
 
 #include <Arduino.h>
 
+// Initializes the NeoPixel LED
 bool initializeLEDs();
-void updateLEDs();
+
+// Updates LED color based on battery percentage
+void updateLEDStatus();
+
+// Displays calibration mode color
+void showCalibrationMode();
 
 #endif
