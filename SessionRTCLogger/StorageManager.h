@@ -8,7 +8,6 @@ bool initializeSD(uint8_t csPin);
 
 // Appends a session record to the file
 bool appendSession(
-  int id,
   const String& material,
   float diameter,
   float humidity,
@@ -37,6 +36,9 @@ String readAllSessions();
 
 // Deletes all session data (clears the file and keeps header)
 bool clearSessionFile();
+
+// Returns the last used session ID, or -1 if no sessions exist
+int getLastSessionId();
 
 // Returns a list of all session IDs found in the file
 void getAllSessionIds(int* idList, int& count);

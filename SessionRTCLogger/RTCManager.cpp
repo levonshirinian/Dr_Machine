@@ -14,8 +14,7 @@ bool initializeRTC() {
     return false;
   }
 
-  // استخدم هذا السطر مرة واحدة فقط لضبط الوقت حسب وقت الكومبايل
-  // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   return true;
 }
 

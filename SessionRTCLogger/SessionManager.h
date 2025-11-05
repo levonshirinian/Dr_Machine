@@ -17,16 +17,18 @@ private:
   float humidity = 0.0;
   float thread_diameter = 0.0;
   String datetime;
+  String material;
 
   unsigned long lastSampleTime = 0;
   const unsigned long sampleInterval = 1000;
 
 public:
   void addSample(float val, uint32_t ts);
-  void setEnvironment(float temp, float hum, float diameter);
+  void setEnvironment(String Material, float temp, float hum, float diameter);
   void setDateTime(String dt);
   void printSession();
-  bool shouldTakeSample();  // ← دالة التوقيت
+  void saveSessionToStorage();
+  bool shouldTakeSample(); 
 };
 
 #endif

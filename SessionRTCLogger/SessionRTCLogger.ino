@@ -8,51 +8,73 @@
 #include "StorageManager.h"
 #include "ScaleController.h"
 
-
 TestSession session;
 bool isRecording = false;
+bool isShouldSaved = false;
 
-void setup() {
+void setup()
+{
   Serial.begin(115200);
-  if (!initializeRTC()) {
-    Serial.println("Failed to initialize RTC");
-  } else {
+  if (initializeRTC())
+  {
     Serial.println("RTC initialized successfully");
   }
-  if (initializeSD(53)) {
+  else
+  {
+    Serial.println("Failed to initialize RTC");
+  }
+  if (initializeSD(53))
+  {
     Serial.println("SD initialized successfully");
-  } else {
+  }
+  else
+  {
     Serial.println("Failed to initialize SD");
   }
-  if (initializeLEDs()) {
+  if (initializeLEDs())
+  {
     Serial.println("LED initialized successfully");
-  } else {
+  }
+  else
+  {
     Serial.println("Failed to initialize LED");
   }
   initializeDisplay();
   initializeBatteryMonitor();
-
   initializeSensors();
-
   Serial.println("Welcome DTX");
 }
 
-void loop() {
+void loop()
+{
   handleTouch();
-
   float voltage = getBatteryVoltage();
   int percent = getBatteryPercentage();
+  SensorData data = readSensors();
+  String material = getCurrentMaterial();
 
-
-  if (isRecording && session.shouldTakeSample()) {
-    Serial.println(getFormattedDateTime());
-    Serial.print("Voltage: ");
-    Serial.print(voltage);
-    Serial.print(" V | Charge: ");
-    Serial.print(percent);
-    Serial.println(" %");
-
-    SensorData data = readSensors();
+  updateLEDStatus();
+  session.setDateTime(getFormattedDateTime());
+  updateDisplay(data.temperature, data.humidity, data.weight, data.limitSwitch);
+  isRecording = data.limitSwitch;
+  if (isRecording)
+  {
+    showCalibrationMode();
+  }
+  else if (isShouldSaved)
+  {
+    session.printSession();
+    session.saveSessionToStorage();
+    isShouldSaved = false;
+  }
+  if (isRecording && session.shouldTakeSample())
+  {
+    // Serial.println(getFormattedDateTime());
+    // Serial.print("Voltage: ");
+    // Serial.print(voltage);
+    // Serial.print(" V | Charge: ");
+    // Serial.print(percent);
+    // Serial.println(" %");
     // Serial.print("temperature: ");
     // Serial.print(data.temperature);
     // Serial.print(" humidity: ");
@@ -61,12 +83,8 @@ void loop() {
     // Serial.print(data.filamentDiameter);
     // Serial.print(" weight: ");
     // Serial.println(data.weight);
-    // session.addSample(data.weight, millis());
-    // session.setEnvironment(data.temperature, data.humidity, data.filamentDiameter);
-    updateDisplay(data.temperature, data.humidity, data.weight, data.limitSwitch);
-    updateLEDStatus();
-    if (data.limitSwitch) {
-      showCalibrationMode();
-    }
+    session.addSample(data.weight, millis());
+    session.setEnvironment(material, data.temperature, data.humidity, data.filamentDiameter);
+    isShouldSaved = true;
   }
 }

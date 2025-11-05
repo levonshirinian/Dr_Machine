@@ -23,7 +23,6 @@ bool initializeSD(uint8_t csPin)
 }
 
 bool appendSession(
-    int id,
     const String &material,
     float diameter,
     float humidity,
@@ -41,8 +40,14 @@ bool appendSession(
   if (!file)
     return false;
 
+  // Get last ID
+  int lastId = getLastSessionId();
+  if (lastId == -1) {
+    lastId = 0;  // If no sessions exist, start with ID 0
+  }
+
   String line = "";
-  line += String(id) + ",";
+  line += String(lastId) + ",";
   line += material + ",";
   line += String(diameter, 2) + ",";
   line += String(humidity, 2) + ",";
@@ -241,4 +246,35 @@ bool clearSessionFile()
     return true;
   }
   return false;
+}
+
+int getLastSessionId()
+{
+  File file = SD.open(sessionFile);
+  if (!file)
+    return -1;
+
+  int lastId = 0;
+  bool skipHeader = true;
+
+  while (file.available())
+  {
+    String line = file.readStringUntil('\n');
+    if (skipHeader)
+    {
+      skipHeader = false;
+      continue;
+    }
+
+    int commaIndex = line.indexOf(',');
+    if (commaIndex == -1)
+      continue;
+
+    int id = line.substring(0, commaIndex).toInt();
+    if (id > lastId)
+      lastId = id;
+  }
+
+  file.close();
+  return lastId;
 }

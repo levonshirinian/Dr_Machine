@@ -33,7 +33,7 @@ void blinkOrange() {
     previousBlinkMillis = currentMillis;
     blinkState = !blinkState;
     if (blinkState) {
-      setColor(255, 165, 0); // Orange
+      setColor(250, 77, 0); // Orange
     } else {
       setColor(0, 0, 0);     // Off
     }
