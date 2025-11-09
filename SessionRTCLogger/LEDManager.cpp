@@ -46,11 +46,13 @@ void updateLEDStatus() {
   int batteryPercent = getBatteryPercentage(); // From BatteryManager
 
   if (isBatteryCharging()) {
-    blinkOrange();  // Orange blinking
+    // blinkOrange();  // Orange blinking
   } else if (batteryPercent >= 95) {
     setColor(0, 255, 0); // Green
   } else if (batteryPercent <= 20) {
     setColor(255, 0, 0); // Red
+  } else {
+    setColor(0, 0, 0); // off LED
   }
 }
 

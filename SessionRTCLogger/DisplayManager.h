@@ -6,6 +6,6 @@
 void initializeDisplay();
 void updateDisplay(float temp, float hum, float weight, bool limitState);
 String getCurrentMaterial();
-void handleTouch();
+char handleTouch();
 
 #endif

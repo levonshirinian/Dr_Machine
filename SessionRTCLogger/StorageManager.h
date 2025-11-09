@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 // Initializes SD card and ensures the session file exists with header and test data
-bool initializeSD(uint8_t csPin);
+bool initializeSD();
 
 // Appends a session record to the file
 bool appendSession(
@@ -42,5 +42,8 @@ int getLastSessionId();
 
 // Returns a list of all session IDs found in the file
 void getAllSessionIds(int* idList, int& count);
+
+// Returns the percentage of free space on the SD card
+float getFreeSpacePercent();
 
 #endif

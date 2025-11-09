@@ -6,7 +6,7 @@
 #include "DisplayManager.h"
 #include <TouchScreen.h>
 #include <LCDWIKI_KBV.h>
-#include <ArduinoJson.h>
+#include <EEPROM.h>
 
 // LCD and touch objects
 LCDWIKI_KBV mylcd(ILI9486, A3, A2, A1, A0, A4);
@@ -46,26 +46,26 @@ void handle_Select_Material(int x, int y);
 void handle_Select_N(int x, int y);
 void drawGradient(uint16_t topColor, uint16_t bottomColor);
 void menu(char m);
-void drawHeader(const char* title, bool showData);
-void drawWeight(int x, int y, const char* unit, bool largeFont);
+void drawHeader(const char *title, bool showData);
+void drawWeight(int x, int y, const char *unit, bool largeFont);
 void displayCurrentScreen();
-boolean is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py);
+bool is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py);
 void loadSessionToGraph(int id);
-int circularDescendingIndex(int& idx, bool increment, int arraySize);
-void MapPointRotuation(TSPoint& p);
+int circularDescendingIndex(int &idx, bool increment, int arraySize);
+void MapPointRotation(TSPoint &p);
 void updateValuesOnScreen();
 #pragma endregion
 
 #pragma region Global state
-const char* materials[] = { "cotton", "wool", "linen", "jute", "silk", "polyester", "Nylon" };
+const char *materials[] = {"cotton", "wool", "linen", "jute", "silk", "polyester", "Nylon"};
 int currentRotation = 3;
 float currentTemp = 35.0;
 float currentHum = 70.0;
 float currentWeight = 0.0;
 bool limitSwitchState = false;
 int currentM = 0;
-float currentN = 1.25;
-float newN = 1.25;
+float currentN = 20.0f;
+float newN = 20.0f;
 char currentScreen = 'T';
 unsigned long lastUpdateTime = 0;
 const long refreshInterval = 500;
@@ -73,137 +73,191 @@ int sessionIndex[128];
 int sessionCount = 0;
 int actualCurrentIndex = 0;
 int currentIdx = 0;
+int freeSpacePercent = 100;
 #pragma endregion
 
-void initializeDisplay() {
+void initializeDisplay()
+{
   mylcd.Init_LCD();
   mylcd.Set_Rotation(currentRotation);
   mylcd.Fill_Screen(BLACK);
   W();
   mylcd.Fill_Screen(BLACK);
-  displayCurrentScreen();
-  getAllSessionIds(sessionIndex, sessionCount);
-  for (int i = 0; i < sessionCount; i++) {
-    Serial.print("#: ");
-    Serial.print(i);
-    Serial.print("\t|Session ID: ");
-    Serial.println(sessionIndex[i]);
+  EEPROM.get(0, currentN);
+  if (isnan(currentN))
+  {
+    currentN = 20.0; 
   }
-  actualCurrentIndex = sessionIndex[sessionCount - 1];
-  Serial.print("Actual Current Index: ");
-  Serial.println(actualCurrentIndex);
-
+  displayCurrentScreen();
+  freeSpacePercent = getFreeSpacePercent();
 }
 
-void updateValuesOnScreen() {
-  if(currentScreen == 'M') return;
-  if(!limitSwitchState){  currentWeight = 0.0;}
-    switch (currentScreen) {
-        case 'T':
-            drawWeight(100, 160, "cN", true);
+void updateValuesOnScreen()
+{
+  if (currentScreen == 'M')
+    return;
+  if (!limitSwitchState)
+  {
+    currentWeight = 0.0;
+  }
+  switch (currentScreen)
+  {
+  case 'T':
+    drawWeight(100, 160, "cN", true);
 
-            mylcd.Set_Text_Size(3);
-            mylcd.Set_Text_colour(limitSwitchState ? GREEN : RED);
+    mylcd.Set_Text_Size(3);
+    mylcd.Set_Text_colour(limitSwitchState ? GREEN : RED);
 
-            mylcd.Set_Text_Back_colour(BLACK);
-            mylcd.Print_String(limitSwitchState ? "LIMIT: PRESSED  " : "LIMIT: RELEASED", 100, 280);
+    mylcd.Set_Text_Back_colour(BLACK);
+    mylcd.Print_String(limitSwitchState ? "LIMIT: PRESSED  " : "LIMIT: RELEASED", 100, 280);
 
-            mylcd.Set_Text_Size(2);
-            char tempBuffer[10], humBuffer[10];
-            dtostrf(currentTemp, 2, 0, tempBuffer);
-            dtostrf(currentHum, 3, 0, humBuffer);
+    mylcd.Set_Text_Size(2);
+    char tempBuffer[10], humBuffer[10];
 
-            mylcd.Set_Text_Back_colour(GRAY);
-            mylcd.Set_Text_colour(WHITE);
-            mylcd.Print_String(tempBuffer, 340, 8);
-            mylcd.Print_String(humBuffer, 420, 8);
-            break;
-        case 'C':
-            drawWeight(100, 100, "cN", true);
-            break;
-        case 'H':
-            drawWeight(100, 160, "G/Cm", true);
-            break;
-    }
+    dtostrf(currentTemp, 2, 0, tempBuffer);
+    dtostrf(currentHum, 3, 0, humBuffer);
+
+    mylcd.Set_Text_Back_colour(GRAY);
+    mylcd.Set_Text_colour(WHITE);
+    mylcd.Print_String(tempBuffer, 340, 8);
+    mylcd.Print_String(humBuffer, 420, 8);
+    break;
+  case 'C':
+    drawWeight(100, 100, "cN", true);
+    break;
+  case 'H':
+    drawWeight(100, 160, "G/Cm", true);
+    break;
+  }
 }
 
-void updateDisplaySession(){
+void updateDisplaySession()
+{
+  Serial.println("Updating display session with index: " + String(actualCurrentIndex));
   String material = showSessionInfoScreen(sessionIndex[actualCurrentIndex]);
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(WHITE);
   mylcd.Set_Text_Back_colour(BLACK);
   String line = material + " " + String(currentIdx + 1) + "/" + String(sessionCount);
   mylcd.Set_Draw_color(BLACK);
-  mylcd.Fill_Rectangle(260, 100, 480, 125); 
+  mylcd.Fill_Rectangle(260, 100, 480, 125);
   mylcd.Print_String(line.c_str(), 260, 100);
 }
 
-void updateDisplay(float temp, float hum, float weight, bool limitState) {
+void updateDisplay(float temp, float hum, float weight, bool limitState)
+{
   currentTemp = temp;
   currentHum = hum;
   currentWeight = weight;
   limitSwitchState = limitState;
 
-  if (millis() - lastUpdateTime > refreshInterval) {
-    updateValuesOnScreen(); 
+  if (millis() - lastUpdateTime > refreshInterval)
+  {
+    updateValuesOnScreen();
     lastUpdateTime = millis();
   }
 }
 
-String getCurrentMaterial() 
+String getCurrentMaterial()
 {
   return materials[currentM];
 }
 
-void handleTouch() {
+char handleTouch()
+{
   TSPoint p = ts.getPoint();
   pinMode(A2, OUTPUT);
   pinMode(A3, OUTPUT);
-  if (!(p.z > MINPRESSURE && p.z < MAXPRESSURE)) return;
+  if (!(p.z > MINPRESSURE && p.z < MAXPRESSURE))
+    return currentScreen;
 
   char oldScreen = currentScreen;
-  MapPointRotuation(p);
-  if( currentScreen == 'g' ) {
-    if(is_pressed(430, 0, 480, 70, p.x, p.y))currentScreen = 'M';}
-  else if (is_pressed(0, 0, 105, 40, p.x, p.y)) currentScreen = 'T';
-  else if (is_pressed(106, 0, 212, 40, p.x, p.y)) currentScreen = 'C';
-  else if (is_pressed(213, 0, 318, 40, p.x, p.y)) currentScreen = 'M';
-  else if (is_pressed(370, 0, 480, 40, p.x, p.y)) currentScreen = 'H';
-  else if (currentScreen == 'T' && is_pressed(90, 60, 130, 155, p.x, p.y)) currentScreen = 's';
-  else if (currentScreen == 'T' && is_pressed(150, 60, 200, 155, p.x, p.y)) currentScreen = 'e';
-  else if (currentScreen == 's') handle_Select_Material(p.x, p.y);
-  else if (currentScreen == 'e'){ handle_Select_N(p.x, p.y); }
-  else if (currentScreen == 'M') {
-    if (is_pressed(230, 290, 320, 320, p.x, p.y)){ actualCurrentIndex = circularDescendingIndex(currentIdx, true, sessionCount);  updateDisplaySession(); }
-    else if (is_pressed(321, 290, 410, 320, p.x, p.y)){ actualCurrentIndex = circularDescendingIndex(currentIdx, false, sessionCount);  updateDisplaySession(); }
-    else if (is_pressed(445, 230, 480, 320, p.x, p.y)) deleteSessionById(sessionIndex[actualCurrentIndex]);
-    else if (is_pressed(450, 45, 480, 125, p.x, p.y)) currentScreen = 'g';
+  MapPointRotation(p);
+  if (currentScreen == 'g')
+  {
+    if (is_pressed(430, 0, 480, 70, p.x, p.y))
+      currentScreen = 'M';
+  }
+  else if (is_pressed(0, 0, 105, 40, p.x, p.y))
+    currentScreen = 'T';
+  else if (is_pressed(106, 0, 212, 40, p.x, p.y))
+    currentScreen = 'C';
+  else if (is_pressed(213, 0, 318, 40, p.x, p.y))
+    currentScreen = 'M';
+  else if (is_pressed(370, 0, 480, 40, p.x, p.y))
+    currentScreen = 'H';
+  else if (currentScreen == 'T' && is_pressed(90, 60, 130, 155, p.x, p.y))
+    currentScreen = 's';
+  else if (currentScreen == 'T' && is_pressed(150, 60, 200, 155, p.x, p.y))
+    currentScreen = 'e';
+  else if (currentScreen == 's')
+    handle_Select_Material(p.x, p.y);
+  else if (currentScreen == 'e')
+  {
+    handle_Select_N(p.x, p.y);
+  }
+  else if (currentScreen == 'M')
+  {
+    if (is_pressed(230, 290, 320, 320, p.x, p.y))
+    {
+      actualCurrentIndex = circularDescendingIndex(currentIdx, true, sessionCount);
+      updateDisplaySession();
+    }
+    else if (is_pressed(321, 290, 410, 320, p.x, p.y))
+    {
+      actualCurrentIndex = circularDescendingIndex(currentIdx, false, sessionCount);
+      updateDisplaySession();
+    }
+    else if (is_pressed(445, 230, 480, 320, p.x, p.y))
+    {
+      deleteSessionById(sessionIndex[actualCurrentIndex]);
+      getAllSessionIds(sessionIndex, sessionCount);
+      if (sessionCount == 0)
+      {
+        currentScreen = 'T';
+      }
+      else
+      {
+        actualCurrentIndex = actualCurrentIndex % sessionCount;
+        updateDisplaySession();
+      }
+    }
+    else if (is_pressed(450, 45, 480, 125, p.x, p.y))
+      currentScreen = 'g';
   }
 
-  if (oldScreen != currentScreen) {
+  if (oldScreen != currentScreen)
+  {
     mylcd.Fill_Screen(BLACK);
     displayCurrentScreen();
   }
 
-  // Serial.print("X: "); Serial.print(p.x);
-  // Serial.print(" Y: "); Serial.println(p.y);
+  Serial.print("X: ");
+  Serial.print(p.x);
+  Serial.print(" Y: ");
+  Serial.println(p.y);
+  return currentScreen;
 }
 
-boolean is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py) {
+bool is_pressed(int16_t x1, int16_t y1, int16_t x2, int16_t y2, int16_t px, int16_t py)
+{
   return (px > x1 && px < x2) && (py > y1 && py < y2);
 }
 
-void drawGradient(uint16_t topColor, uint16_t bottomColor) {
+void drawGradient(uint16_t topColor, uint16_t bottomColor)
+{
   mylcd.Fill_Screen(BLACK);
 }
 
-void menu(char m) {
+void menu(char m)
+{
   mylcd.Set_Draw_color(BLACK);
   mylcd.Fill_Rectangle(0, 0, 70, 320);
   uint16_t highlight = BLUE;
   uint16_t normal = GRAY;
-  const char labels[4] = { 'T', 'C', 'M', 'H' };
-  for (int i = 0; i < 4; i++) {
+  const char labels[4] = {'T', 'C', 'M', 'H'};
+  for (int i = 0; i < 4; i++)
+  {
     int y1 = i * 80;
     uint16_t btnColor = (m == labels[i]) ? highlight : normal;
     mylcd.Set_Draw_color(btnColor);
@@ -216,7 +270,8 @@ void menu(char m) {
   mylcd.Set_Text_Back_colour(BLACK);
 }
 
-void drawHeader(const char* title, bool showData) {
+void drawHeader(const char *title, bool showData)
+{
   mylcd.Set_Draw_color(GRAY);
   mylcd.Fill_Rectangle(70, 0, 480, 40);
   mylcd.Set_Text_Mode(0);
@@ -224,7 +279,8 @@ void drawHeader(const char* title, bool showData) {
   mylcd.Set_Text_colour(WHITE);
   mylcd.Set_Text_Size(3);
   mylcd.Print_String(title, 80, 8);
-  if (showData) {
+  if (showData)
+  {
     mylcd.Set_Text_Size(2);
     char tempBuffer[10], humBuffer[10];
     dtostrf(currentTemp, 2, 0, tempBuffer);
@@ -237,7 +293,8 @@ void drawHeader(const char* title, bool showData) {
   }
 }
 
-void drawWeight(int x, int y, const char* unit, bool largeFont) {
+void drawWeight(int x, int y, const char *unit, bool largeFont)
+{
   mylcd.Set_Text_Mode(0);
   mylcd.Set_Text_Back_colour(BLACK);
   mylcd.Set_Text_colour(WHITE);
@@ -249,7 +306,8 @@ void drawWeight(int x, int y, const char* unit, bool largeFont) {
   mylcd.Print_String(unit, x + 250, y + 80);
 }
 
-void W() {
+void W()
+{
   mylcd.Fill_Screen(BLACK);
   mylcd.Set_Text_Mode(0);
   mylcd.Set_Text_Back_colour(BLACK);
@@ -261,7 +319,8 @@ void W() {
   mylcd.Print_String("DTX", 160, 160);
 }
 
-void T() {
+void T()
+{
   newN = currentN;
   mylcd.Fill_Screen(BLACK);
   menu('T');
@@ -270,16 +329,17 @@ void T() {
   mylcd.Set_Text_colour(WHITE);
   mylcd.Print_String(materials[currentM], 90, 60);
   char buf[10];
-  dtostrf(currentN, 1, 2, buf);
+  dtostrf(currentN, 1, 1, buf);
   mylcd.Print_String("N: ", 90, 100);
-  mylcd.Print_String(buf, 125, 100);
+  mylcd.Print_String(buf, 130, 100);
   drawWeight(100, 160, "cN", true);
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(limitSwitchState ? GREEN : RED);
   mylcd.Print_String(limitSwitchState ? "LIMIT: PRESSED" : "LIMIT: RELEASED", 100, 280);
 }
 
-void C() {
+void C()
+{
   mylcd.Fill_Screen(BLACK);
   menu('C');
   drawHeader("CALIBRATION", false);
@@ -292,17 +352,24 @@ void C() {
   mylcd.Print_String("-", 435, 210);
 }
 
-void M() {
+void M()
+{
+  getAllSessionIds(sessionIndex, sessionCount);
+  actualCurrentIndex = circularDescendingIndex(currentIdx, true, sessionCount);
+  actualCurrentIndex = circularDescendingIndex(currentIdx, false, sessionCount);
+
   mylcd.Fill_Screen(BLACK);
+  Serial.println("actualCurrentIndex in M: " + String(actualCurrentIndex));
   String material = showSessionInfoScreen(sessionIndex[actualCurrentIndex]);
   menu('M');
   drawHeader("MEMORY", true);
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(WHITE);
-  mylcd.Print_String("Data Slots: 100% Free", 100, 60);
+  String line1 = "Data Slots: "+ String(freeSpacePercent) + "% Free";
+  mylcd.Print_String(line1.c_str(), 100, 60);
   mylcd.Print_String("Material:", 100, 100);
-  String line = material + " " + String(currentIdx + 1) + "/" + String(sessionCount);
-  mylcd.Print_String(line.c_str(), 260, 100);
+  String line2 = material + " " + String(currentIdx + 1) + "/" + String(sessionCount);
+  mylcd.Print_String(line2.c_str(), 260, 100);
   mylcd.Set_Text_Size(8);
   mylcd.Print_String("+", 435, 150);
   mylcd.Print_String("-", 435, 210);
@@ -311,7 +378,8 @@ void M() {
   mylcd.Print_String("Graph", 72, 290);
 }
 
-void H() {
+void H()
+{
   mylcd.Fill_Screen(BLACK);
   menu('H');
   drawHeader("HARDNESS TEST", true);
@@ -320,7 +388,8 @@ void H() {
   mylcd.Print_String("Reading #3", 420, 250);
 }
 
-void editN() {
+void editN()
+{
   mylcd.Fill_Screen(BLACK);
   menu('T');
   mylcd.Set_Text_colour(WHITE);
@@ -329,27 +398,34 @@ void editN() {
   mylcd.Print_String("Edit N Value", 90, 50);
   mylcd.Print_String("Save", 390, 290);
   mylcd.Set_Text_Size(8);
-  mylcd.Print_String(String(newN), 175, 180);
+  char buf[10];
+  dtostrf(newN, 1, 1, buf);
+  mylcd.Print_String(buf, 175, 180);
+  // mylcd.Print_String(String(newN), 175, 180);
   mylcd.Set_Text_Size(6);
   mylcd.Print_String("+", 175, 125);
   mylcd.Print_String("-", 175, 250);
-  mylcd.Print_String("+", 275, 125);
-  mylcd.Print_String("-", 275, 250);
+  mylcd.Print_String("+", 225, 125);
+  mylcd.Print_String("-", 225, 250);
   mylcd.Print_String("+", 325, 125);
   mylcd.Print_String("-", 325, 250);
 }
 
-void updateDisplayNewNValue(float newValue) {
+void updateDisplayNewNValue(float newValue)
+{
   newN = newValue;
   mylcd.Set_Text_Size(8);
   mylcd.Set_Text_Back_colour(BLACK);
   mylcd.Set_Text_colour(WHITE);
   mylcd.Set_Draw_color(BLACK);
-  mylcd.Fill_Rectangle(175, 180, 325, 230); 
-  mylcd.Print_String(String(newN), 175, 180);
+  mylcd.Fill_Rectangle(175, 180, 345, 230);
+  char buf[10];
+  dtostrf(newN, 1, 1, buf);
+  mylcd.Print_String(buf, 175, 180);
 }
 
-void select_M() {
+void select_M()
+{
   mylcd.Fill_Screen(BLACK);
   menu('T');
   mylcd.Set_Text_Mode(0);
@@ -357,86 +433,175 @@ void select_M() {
   mylcd.Set_Text_Size(4);
   mylcd.Print_String("Select Material", 100, 50);
   mylcd.Set_Text_Size(3);
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < 7; i++)
+  {
     mylcd.Print_String(materials[i], 100, 100 + i * 30);
   }
 }
 
-void handle_Select_Material(int x, int y) {
-  if (is_pressed(150, 65, 180, 175, x, y)) currentM = 0;
-  else if (is_pressed(195, 65, 230, 175, x, y)) currentM = 1;
-  else if (is_pressed(240, 65, 275, 175, x, y)) currentM = 2;
-  else if (is_pressed(300, 65, 330, 175, x, y)) currentM = 3;
-  else if (is_pressed(345, 65, 375, 175, x, y)) currentM = 4;
-  else if (is_pressed(405, 65, 425, 175, x, y)) currentM = 5;
-  else if (is_pressed(440, 65, 465, 175, x, y)) currentM = 6;
+void handle_Select_Material(int x, int y)
+{
+  if (is_pressed(150, 65, 180, 175, x, y))
+    currentM = 0;
+  else if (is_pressed(195, 65, 230, 175, x, y))
+    currentM = 1;
+  else if (is_pressed(240, 65, 275, 175, x, y))
+    currentM = 2;
+  else if (is_pressed(300, 65, 330, 175, x, y))
+    currentM = 3;
+  else if (is_pressed(345, 65, 375, 175, x, y))
+    currentM = 4;
+  else if (is_pressed(405, 65, 425, 175, x, y))
+    currentM = 5;
+  else if (is_pressed(440, 65, 465, 175, x, y))
+    currentM = 6;
   currentScreen = 'T';
 }
 
-void handle_Select_N(int x, int y) {
-  if (is_pressed(190, 115, 260, 140, x, y)) { newN += 1; if (newN > 10) newN -= 10; updateDisplayNewNValue(newN); }
-  else if (is_pressed(390, 115, 455, 140, x, y)) { newN -= 1; if (newN < 0) newN = 0.01; updateDisplayNewNValue(newN); }
-  else if (is_pressed(190, 185, 260, 210, x, y)) { newN += 0.1; if (newN > 10) newN -= 10; updateDisplayNewNValue(newN); }
-  else if (is_pressed(390, 185, 455, 210, x, y)) { newN -= 0.1; if (newN < 0) newN = 0.01; updateDisplayNewNValue(newN); }
-  else if (is_pressed(190, 220, 260, 245, x, y)) { newN += 0.01; if (newN > 10) newN -= 10; updateDisplayNewNValue(newN); }
-  else if (is_pressed(390, 220, 455, 245, x, y)) { newN -= 0.01; if (newN < 0) newN = 0.01; updateDisplayNewNValue(newN); }
-  if (is_pressed(445, 270, 480, 320, x, y)) { currentN = newN; currentScreen = 'T'; displayCurrentScreen(); }
+void handle_Select_N(int x, int y)
+{
+  if (is_pressed(190, 115, 260, 140, x, y))
+  {
+    newN += 10;
+    if (newN > 70.0)
+      newN = 70.0;
+    updateDisplayNewNValue(newN);
+  }
+  else if (is_pressed(390, 115, 455, 140, x, y))
+  {
+    newN -= 10;
+    if (newN < 20.0)
+      newN = 20.0;
+    updateDisplayNewNValue(newN);
+  }
+  else if (is_pressed(190, 150, 260, 210, x, y))
+  {
+    newN += 1;
+    if (newN > 70.0)
+      newN = 70.0;
+    updateDisplayNewNValue(newN);
+  }
+  else if (is_pressed(390, 150, 455, 210, x, y))
+  {
+    newN -= 1;
+    if (newN < 20.0)
+      newN = 20.0;
+    updateDisplayNewNValue(newN);
+  }
+  else if (is_pressed(190, 220, 260, 245, x, y))
+  {
+    newN += 0.1;
+    if (newN > 70.0)
+      newN = 70.0;
+    updateDisplayNewNValue(newN);
+  }
+  else if (is_pressed(390, 220, 455, 245, x, y))
+  {
+    newN -= 0.1;
+    if (newN < 20.0)
+      newN = 20.0;
+    updateDisplayNewNValue(newN);
+  }
+  if (is_pressed(445, 270, 480, 320, x, y))
+  {
+    currentN = newN;
+    currentScreen = 'T';
+    EEPROM.put(0, currentN);
+  }
+  newN = ((int)(newN * 10)) / 10.0f;
 }
 
-void displayCurrentScreen() {
-  switch (currentScreen) {
-    case 'T': T(); break;
-    case 'C': C(); break;
-    case 'M': M(); break;
-    case 'H': H(); break;
-    case 'e': editN(); break;
-    case 's': select_M(); break;
-    case 'g': loadSessionToGraph(sessionIndex[actualCurrentIndex]); break;
+void displayCurrentScreen()
+{
+  switch (currentScreen)
+  {
+  case 'T':
+    T();
+    break;
+  case 'C':
+    C();
+    break;
+  case 'M':
+    M();
+    break;
+  case 'H':
+    H();
+    break;
+  case 'e':
+    editN();
+    break;
+  case 's':
+    select_M();
+    break;
+  case 'g':
+    loadSessionToGraph(sessionIndex[actualCurrentIndex]);
+    break;
   }
 }
 
-int circularDescendingIndex(int& idx, bool increment, int arraySize) {
-  if (increment) idx = (idx + 1) % arraySize;
-  else idx = (idx - 1 + arraySize) % arraySize;
+int circularDescendingIndex(int &idx, bool increment, int arraySize)
+{
+  if (increment)
+    idx = (idx + 1) % arraySize;
+  else
+    idx = (idx - 1 + arraySize) % arraySize;
   return arraySize - 1 - idx;
 }
 
-void MapPointRotuation(TSPoint& p) {
+void MapPointRotation(TSPoint &p)
+{
   long rawX = p.x;
   long rawY = p.y;
   long mappedLong = map(rawX, TS_MINX, TS_MAXX, 0, 480);
   long mappedShort = map(rawY, TS_MINY, TS_MAXY, 0, 320);
   long pixelX = 0, pixelY = 0;
-  switch (currentRotation) {
-    case 1: pixelX = mappedLong; pixelY = 320 - mappedShort; break;
-    case 3: pixelX = 480 - mappedLong; pixelY = mappedShort; break;
-    default: pixelX = mappedLong; pixelY = mappedShort; break;
+  switch (currentRotation)
+  {
+  case 1:
+    pixelX = mappedLong;
+    pixelY = 320 - mappedShort;
+    break;
+  case 3:
+    pixelX = 480 - mappedLong;
+    pixelY = mappedShort;
+    break;
+  default:
+    pixelX = mappedLong;
+    pixelY = mappedShort;
+    break;
   }
-  p.x = pixelX; p.y = pixelY;
+  p.x = pixelX;
+  p.y = pixelY;
 }
 
-void loadSessionToGraph(int id) {
+void loadSessionToGraph(int id)
+{
   GraphSession gSession;
   String line = getSessionById(id);
-  if (line == "NOT FOUND") return;
+  if (line == "NOT FOUND")
+    return;
   gSession.reset();
   int fieldIndex = 0, lastIndex = 0;
   String fields[25];
-  for (int j = 0; j < line.length(); j++) {
-    if (line[j] == ',' || j == line.length() - 1) {
+  for (int j = 0; j < line.length(); j++)
+  {
+    if (line[j] == ',' || j == line.length() - 1)
+    {
       int endIndex = (j == line.length() - 1) ? j + 1 : j;
       fields[fieldIndex++] = line.substring(lastIndex, endIndex);
       lastIndex = j + 1;
     }
   }
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++)
+  {
     float val = fields[11 + i].toFloat();
     gSession.addPoint(val, i);
   }
   drawGraph(gSession);
 }
 
-String showSessionInfoScreen(int targetId) {
+String showSessionInfoScreen(int targetId)
+{
   const int contentX = 75;
   const int contentY = 160;
   const int contentW = 320;
@@ -446,11 +611,13 @@ String showSessionInfoScreen(int targetId) {
   mylcd.Set_Text_Size(3);
   mylcd.Set_Text_colour(WHITE);
   mylcd.Set_Draw_color(BLACK);
-  mylcd.Fill_Rectangle(70, contentY, contentW + 60, contentH -15);
+  mylcd.Fill_Rectangle(70, contentY, contentW + 60, contentH - 15);
   mylcd.Set_Draw_color(GRAY);
 
   String line = getSessionById(targetId);
-  if (line == "NOT FOUND") {
+  if (line == "NOT FOUND")
+  {
+    Serial.println("Session not found for ID: " + String(targetId));
     mylcd.Print_String("Session not found", contentX, contentY + 10);
     return "";
   }
@@ -459,12 +626,15 @@ String showSessionInfoScreen(int targetId) {
   int fieldIndex = 0;
   int lastIndex = 0;
 
-  for (int j = 0; j < line.length(); j++) {
-    if (line[j] == ',' || j == line.length() - 1) {
+  for (int j = 0; j < line.length(); j++)
+  {
+    if (line[j] == ',' || j == line.length() - 1)
+    {
       int endIndex = (j == line.length() - 1) ? j + 1 : j;
       fields[fieldIndex++] = line.substring(lastIndex, endIndex);
       lastIndex = j + 1;
-      if (fieldIndex >= 12) break;
+      if (fieldIndex >= 12)
+        break;
     }
   }
 

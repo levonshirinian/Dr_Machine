@@ -11,11 +11,17 @@
 #define CALIBRATE_BUTTON_PIN   3   // Button to calibrate the scale
 #define READ_BUTTON_PIN        4   // Button to read weight
 
-#define LED_PIN         22         // NeoPixel LED pin
-#define NUM_LEDS        1          // Number of NeoPixel LEDs
-#define TEST_BUTTON_PIN 2
+#define LED_PIN                22  // NeoPixel LED pin
+#define NUM_LEDS               1   // Number of NeoPixel LEDs
 
-#define batteryPin A8              // Battery voltage ADC pin
+#define batteryPin             A8  // Battery voltage ADC pin
+
+#define LIMIT_SWITCH_PIN       23  // Limit switch pin
+#define DHTPIN                 24  // DHT11 data pin
+#define LOADCELL_DOUT_PIN      26  // HX711 data pin
+#define LOADCELL_SCK_PIN       28  // HX711 clock pin
+
+#define SD_CS_PIN             53  // SD card chip select pin
 
 // -----------------------------
 // Calibration Settings
