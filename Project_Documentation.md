@@ -1,6 +1,6 @@
-# SessionRTCLogger - Technical Documentation
+# DTX - Technical Documentation
 
-**Project Name:** SessionRTCLogger  
+**Project Name:** DTX  
 **Type:** Arduino/Embedded Systems Project  
 **Platform:** Arduino (Mega or compatible with ATmega2560 architecture)  
 **Language:** C++ (Arduino)  
@@ -25,7 +25,7 @@
 
 ## 1. Project Overview
 
-**SessionRTCLogger** is an Arduino-based multi-modal testing instrument designed for conducting **tensile and hardness tests** on thread/filament materials. The system integrates real-time data acquisition, environmental monitoring, SD card logging, and a full-color touchscreen interface to provide a complete testing and analysis platform.
+**DTX** is an Arduino-based multi-modal testing instrument designed for conducting **tensile and hardness tests** on thread/filament materials. The system integrates real-time data acquisition, environmental monitoring, SD card logging, and a full-color touchscreen interface to provide a complete testing and analysis platform.
 
 The device measures mechanical properties (tension/stress), environmental conditions (temperature and humidity), and timestamps all data using a real-time clock (RTC). Test sessions are stored on an SD card and can be retrieved for further analysis.
 
@@ -33,7 +33,7 @@ The device measures mechanical properties (tension/stress), environmental condit
 
 ## 2. System Goals
 
-The SessionRTCLogger firmware achieves the following objectives:
+The DTX firmware achieves the following objectives:
 
 1. **Real-Time Sensor Acquisition:** Continuously read load cell, DHT11, and limit switch data
 2. **Environmental Monitoring:** Track temperature and humidity during tests
@@ -143,55 +143,55 @@ The SessionRTCLogger firmware achieves the following objectives:
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Arduino Mega 2560                          │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │           Core Firmware (SessionRTCLogger.ino)           │  │
-│  │  • setup() - Hardware initialization                     │  │
-│  │  • loop() - Main execution cycle                        │  │
-│  │  • Global state management                             │  │
-│  └──────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │           Core Firmware (DTX.ino)                        │   │
+│  │  • setup() - Hardware initialization                     │   │
+│  │  • loop() - Main execution cycle                         │   │
+│  │  • Global state management                               │   │
+│  └──────────────────────────────────────────────────────────┘   │
 │                            │                                    │
-│    ┌──────────────────────┼──────────────────────┐            │
-│    │                      │                      │            │
-│    ▼                      ▼                      ▼            │
-│  ┌──────────┐      ┌──────────┐         ┌──────────┐         │
-│  │ SENSORS  │      │ RTC/TIME │         │ DISPLAY  │         │
-│  ├──────────┤      ├──────────┤         ├──────────┤         │
-│  │ HX711    │      │ DS3231   │         │ ILI9486  │         │
-│  │ DHT11    │      │ I2C      │         │ Touch    │         │
-│  │ Limit SW │      └──────────┘         └──────────┘         │
-│  └──────────┘            │                      │             │
-│    │ (SensorManager)      │ (RTCManager)        │ (DisplayMgr)│
-│    │                      │                      │             │
-│    └──────────────────────┼──────────────────────┘             │
-│                           │                                    │
-│                    ┌──────▼──────┐                             │
+│    ┌──────────────────────┼──────────────────────┐              │
+│    │                      │                      │              │
+│    ▼                      ▼                      ▼              │
+│  ┌──────────┐      ┌──────────┐         ┌──────────┐            │
+│  │ SENSORS  │      │ RTC/TIME │         │ DISPLAY  │            │
+│  ├──────────┤      ├──────────┤         ├──────────┤            │
+│  │ HX711    │      │ DS3231   │         │ ILI9486  │            │
+│  │ DHT11    │      │ I2C      │         │ Touch    │            │
+│  │ Limit SW │      └──────────┘         └──────────┘            │
+│  └──────────┘             │                    │                │
+│    │ (SensorManager)      │ (RTCManager)       │ (DisplayMgr)   │
+│    │                      │                    │                │
+│    └──────────────────────┼────────────────────┘                │
+│                           │                                     │
+│                    ┌──────▼──────┐                              │
 │                    │SESSION LOGIC │                             │
 │                    ├──────────────┤                             │
 │                    │TestSession   │                             │
 │                    │SessionManager│                             │
 │                    │Sample buffer │                             │
 │                    └──────┬───────┘                             │
-│                           │                                    │
-│    ┌──────────────────────┼──────────────────────┐            │
-│    │                      │                      │            │
-│    ▼                      ▼                      ▼            │
-│  ┌──────────┐      ┌──────────┐         ┌──────────┐         │
-│  │ STORAGE  │      │ BATTERY  │         │ LED      │         │
-│  ├──────────┤      ├──────────┤         ├──────────┤         │
-│  │ SD Card  │      │ Voltage  │         │ NeoPixel │         │
-│  │ CSV File │      │ Monitor  │         │ Status   │         │
-│  └──────────┘      └──────────┘         └──────────┘         │
-│   (StorageMgr)     (BatteryMgr)         (LEDManager)          │
-│                                                                │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ Supporting Modules                                       │ │
-│  ├──────────────────────────────────────────────────────────┤ │
-│  │ • ScaleController - HX711 interface and calibration     │ │
-│  │ • GraphViewer - Data visualization and stress curves    │ │
-│  │ • Config.h - Pin definitions and calibration settings  │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
+│                           │                                     │
+│    ┌──────────────────────┼──────────────────────┐              │
+│    │                      │                      │              │
+│    ▼                      ▼                      ▼              │
+│  ┌──────────┐      ┌──────────┐         ┌──────────┐            │
+│  │ STORAGE  │      │ BATTERY  │         │ LED      │            │
+│  ├──────────┤      ├──────────┤         ├──────────┤            │
+│  │ SD Card  │      │ Voltage  │         │ NeoPixel │            │
+│  │ CSV File │      │ Monitor  │         │ Status   │            │
+│  └──────────┘      └──────────┘         └──────────┘            │
+│   (StorageMgr)     (BatteryMgr)         (LEDManager)            │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ Supporting Modules                                       │   │
+│  ├──────────────────────────────────────────────────────────┤   │
+│  │ • ScaleController - HX711 interface and calibration      │   │
+│  │ • GraphViewer - Data visualization and stress curves     │   │
+│  │ • Config.h - Pin definitions and calibration settings    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -203,31 +203,31 @@ The SessionRTCLogger firmware achieves the following objectives:
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   SensorManager                                                 │
-│   ┌────────────────┐                                           │
-│   │ readSensors()  │                                           │
-│   │ • HX711 load   │                                           │
-│   │ • DHT11 temp   │                                           │
-│   │ • DHT11 hum    │                                           │
-│   │ • Limit switch │                                           │
-│   └────────┬───────┘                                           │
+│   ┌────────────────┐                                            │
+│   │ readSensors()  │                                            │
+│   │ • HX711 load   │                                            │
+│   │ • DHT11 temp   │                                            │
+│   │ • DHT11 hum    │                                            │
+│   │ • Limit switch │                                            │
+│   └────────┬───────┘                                            │
 │            │                                                    │
-│            │ SensorData struct                                 │
+│            │ SensorData struct                                  │
 │            ▼                                                    │
-│   DisplayManager                    SessionManager             │
-│   ┌────────────────┐               ┌────────────────┐         │
-│   │ updateDisplay()│               │ addSample()    │         │
-│   │ • Render real- │               │ • Buffer data  │         │
-│   │   time values  │               │ • Circular buf │         │
-│   │ • Update graph │               │ • 1s interval  │         │
-│   └────────────────┘               └────────┬───────┘         │
-│                                             │                  │
+│   DisplayManager                    SessionManager              │
+│   ┌────────────────┐               ┌────────────────┐           │
+│   │ updateDisplay()│               │ addSample()    │           │
+│   │ • Render real- │               │ • Buffer data  │           │
+│   │   time values  │               │ • Circular buf │           │
+│   │ • Update graph │               │ • 1s interval  │           │
+│   └────────────────┘               └────────┬───────┘           │
+│                                             │                   │
 │                                    RTCManager                   │
 │                                    ┌────────────────┐           │
 │                                    │ datetime info  │           │
 │                                    │ • Date         │           │
 │                                    │ • Time         │           │
 │                                    └────────────────┘           │
-│                                             │                  │
+│                                             │                   │
 │                                    StorageManager               │
 │                                    ┌────────────────┐           │
 │                                    │ saveSession()  │           │
@@ -473,7 +473,7 @@ Pressure Thresholds:
                     ▼
     ┌────────────────────────────────────────┐
     │     MAIN STATE LOOP                    │
-    │  Current Screen: 'T', 'C', 'M', 'H'   │
+    │  Current Screen: 'T', 'C', 'M', 'H'    │
     └────────┬───────────────────────────────┘
              │
     ┌────────┴────────┬──────────┬──────────┬──────────┐
@@ -592,8 +592,8 @@ Save after edit:
 ### 7.1 File Organization
 
 ```
-SessionRTCLogger/
-├── SessionRTCLogger.ino          [Main sketch - Setup & Loop]
+DTX/
+├── DTX.ino          [Main sketch - Setup & Loop]
 ├── Config.h                      [Pin definitions & settings]
 │
 ├── Session Management
@@ -619,7 +619,7 @@ SessionRTCLogger/
 
 ### 7.2 Detailed File Descriptions
 
-#### **SessionRTCLogger.ino** - Main Sketch
+#### **DTX.ino** - Main Sketch
 - **Purpose:** Entry point; defines setup() and loop()
 - **Global State:**
   - `TestSession session` - Active session object
@@ -1234,7 +1234,7 @@ Result stored and displayed as cN (centinewtons)
   - MCUFRIEND_kbv (alternative display lib)
 
 ### Build Steps
-1. Open `SessionRTCLogger.ino` in Arduino IDE
+1. Open `DTX.ino` in Arduino IDE
 2. Select Tools → Board → Arduino Mega 2560
 3. Select Tools → Port → (appropriate COM port)
 4. Verify code: Sketch → Verify/Compile
